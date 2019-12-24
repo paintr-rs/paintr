@@ -2,8 +2,8 @@ use druid::piet::Color;
 use druid::widget::{Align, Container, Flex, Label, Padding};
 use druid::{
     lens::{self, LensExt},
-    AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, LocalizedString, Widget,
-    WindowDesc, WindowId, Lens
+    theme, AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, Lens,
+    LocalizedString, Widget, WindowDesc, WindowId,
 };
 
 macro_rules! L {
@@ -27,6 +27,9 @@ fn main() {
 
     AppLauncher::with_window(main_window)
         .delegate(Delegate)
+        .configure_env(|env| {
+            env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
+        })
         .launch(State::default())
         .expect("launch failed");
 }
@@ -86,13 +89,12 @@ fn ui_builder() -> impl Widget<State> {
     let text = L!("paintr-front-page-welcome");
 
     let label = Label::new(text.clone());
-    let main_content = Container::new(Align::centered(Padding::new(5.0, label)))
-        .background(Color::rgb8(0, 0x77, 0x88));
+    let main_content = Container::new(Align::centered(Padding::new(5.0, label)));
 
     let _ = lens::Id.then(State::notifications);
 
     SnackBarContainer::new(
         Flex::column().with_child(main_content, 1.0),
-        State::notifications
+        State::notifications,
     )
 }
