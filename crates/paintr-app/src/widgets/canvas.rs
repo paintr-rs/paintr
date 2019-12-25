@@ -1,5 +1,5 @@
 use druid::kurbo::{Point, Rect, Size};
-use druid::piet::{Color, ImageFormat, InterpolationMode, RenderContext};
+use druid::piet::{ImageFormat, InterpolationMode, RenderContext};
 use druid::{BoxConstraints, Env, Event, EventCtx, LayoutCtx, PaintCtx, UpdateCtx, Widget};
 
 use image::{DynamicImage, RgbaImage};
@@ -45,23 +45,16 @@ impl Widget<DataType> for Canvas {
         _data: &DataType,
         _env: &Env,
     ) -> Size {
-        // BoxConstraints are passed by the parent widget.
-        // This method can return any Size within those constraints:
-        // bc.constrain(my_size)
-        //
-        // To check if a dimension is infinite or not (e.g. scrolling):
-        // bc.is_width_bounded() / bc.is_height_bounded()
-        bc.max()
+        match &self.image {
+            Some(img) => (img.width() as f64, img.height() as f64).into(),
+            None => bc.max(),
+        }
     }
 
     // The paint method gets called last, after an event flow.
     // It goes event -> update -> layout -> paint, and each method can influence the next.
     // Basically, anything that changes the appearance of a widget causes a paint.
     fn paint(&mut self, paint_ctx: &mut PaintCtx, _data: &DataType, _env: &Env) {
-        // Let's draw a picture with Piet!
-        // Clear the whole context with the color of your choice
-        paint_ctx.clear(Color::WHITE);
-
         let img = match &self.image {
             Some(img) => img,
             _ => return,
