@@ -59,12 +59,9 @@ impl Widget<DataType> for Canvas {
             Some(img) => img,
             _ => return,
         };
-
-        // let size = paint_ctx.size();
-
         let size = (img.width() as usize, img.height() as usize);
 
-        // Let's burn some CPU to make a (partially transparent) image buffer
+        // FIXME: Draw image only in paint_ctx.region
         let image = paint_ctx
             .make_image(size.0, size.1, &img, ImageFormat::RgbaSeparate)
             .unwrap();
