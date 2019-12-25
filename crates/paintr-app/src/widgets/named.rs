@@ -27,10 +27,7 @@ impl<T: Data> Widget<T> for Named<T> {
             .set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
 
         let header_offset = size.height;
-        let child_bc = BoxConstraints::new(
-            Size::new(bc.min().width, bc.min().height + header_offset),
-            bc.max(),
-        );
+        let child_bc = bc.shrink((0.0, header_offset));
         let size = self.inner.layout(ctx, &child_bc, data, env);
         let origin = Point::new(0.0, header_offset);
         self.inner
