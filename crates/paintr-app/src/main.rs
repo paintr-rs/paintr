@@ -1,5 +1,5 @@
 use druid::piet::Color;
-use druid::widget::{Align, Flex, Label, Padding, Either, WidgetExt};
+use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, WidgetExt};
 use druid::{
     theme, AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, Lens,
     LocalizedString, Widget, WindowDesc, WindowId,
@@ -14,7 +14,7 @@ macro_rules! L {
 mod commands;
 mod menu;
 mod widgets;
-use widgets::{SnackBarContainer, Canvas};
+use widgets::{Canvas, SnackBarContainer};
 
 use std::sync::Arc;
 
@@ -52,8 +52,6 @@ impl State {
     }
 }
 
-
-
 impl AppDelegate<State> for Delegate {
     fn event(
         &mut self,
@@ -74,7 +72,7 @@ impl AppDelegate<State> for Delegate {
                             data.show_notification(err.description());
                         }
                         Ok(_) => {
-                            let s = format!("{} opened", info.path().to_str().unwrap_or("????"));                            
+                            let s = format!("{} opened", info.path().to_str().unwrap_or("????"));
                             data.show_notification(&s);
                         }
                     }
@@ -105,9 +103,14 @@ fn ui_builder() -> impl Widget<State> {
 
     let label = Label::new(text.clone());
 
-    let main_content = Either::new(|data : &State, &_| {
-        !data.image.is_some()
-    }, Align::centered(Padding::new(5.0, label)), Canvas::new().lens(State::image) );
+    let main_content = Either::new(
+        |data: &State, &_| !data.image.is_some(),
+        Align::centered(Padding::new(5.0, label)),
+        Align::centered(Padding::new(
+            5.0,
+            Scroll::new(Canvas::new().lens(State::image)),
+        )),
+    );
 
     SnackBarContainer::new(
         Flex::column().with_child(main_content, 1.0),
