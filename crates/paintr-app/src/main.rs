@@ -1,5 +1,5 @@
 use druid::piet::Color;
-use druid::widget::{Align, Container, Flex, Label, Padding};
+use druid::widget::{Align, Flex, Label, Padding, Either, WidgetExt};
 use druid::{
     theme, AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, Lens,
     LocalizedString, Widget, WindowDesc, WindowId,
@@ -14,7 +14,7 @@ macro_rules! L {
 mod commands;
 mod menu;
 mod widgets;
-use widgets::snack_bar::SnackBarContainer;
+use widgets::{SnackBarContainer, Canvas};
 
 use std::sync::Arc;
 
@@ -38,13 +38,21 @@ struct Delegate;
 #[derive(Clone, Data, Default, Lens)]
 struct State {
     notifications: Arc<Vec<Arc<String>>>,
+    image: Option<Arc<image::DynamicImage>>,
 }
 
 impl State {
     fn show_notification(&mut self, s: &str) {
         Arc::make_mut(&mut self.notifications).push(Arc::new(s.into()));
     }
+
+    fn do_open_image(&mut self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+        self.image = Some(Arc::new(image::open(path)?));
+        Ok(())
+    }
 }
+
+
 
 impl AppDelegate<State> for Delegate {
     fn event(
@@ -61,7 +69,15 @@ impl AppDelegate<State> for Delegate {
                 }
                 &druid::commands::OPEN_FILE => {
                     let info = cmd.get_object::<druid::FileInfo>().expect("api violation");
-                    data.show_notification(info.path().to_str().unwrap_or("Not a valid path"));
+                    match data.do_open_image(info.path()) {
+                        Err(err) => {
+                            data.show_notification(err.description());
+                        }
+                        Ok(_) => {
+                            let s = format!("{} opened", info.path().to_str().unwrap_or("????"));                            
+                            data.show_notification(&s);
+                        }
+                    }
                 }
                 _ => (),
             },
@@ -88,7 +104,10 @@ fn ui_builder() -> impl Widget<State> {
     let text = L!("paintr-front-page-welcome");
 
     let label = Label::new(text.clone());
-    let main_content = Container::new(Align::centered(Padding::new(5.0, label)));
+
+    let main_content = Either::new(|data : &State, &_| {
+        !data.image.is_some()
+    }, Align::centered(Padding::new(5.0, label)), Canvas::new().lens(State::image) );
 
     SnackBarContainer::new(
         Flex::column().with_child(main_content, 1.0),

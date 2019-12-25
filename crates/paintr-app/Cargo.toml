@@ -11,3 +11,4 @@ paintr={path="../paintr"}
 
 # We use master for druid becuse druid is fast moving project
 druid = { path = "../../../druid/druid" }
+image = "0.22.3"

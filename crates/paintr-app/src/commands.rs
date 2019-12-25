@@ -1,5 +1,5 @@
 use druid::{Command, FileDialogOptions, FileSpec, Selector};
-const IMAGE_FILE_TYPE: FileSpec = FileSpec::new("PNG", &["png"]);
+const IMAGE_FILE_TYPE: FileSpec = FileSpec::new("Images", &["png", "gif", "jpg", "jpeg"]);
 
 pub(crate) const FILE_EXIT_ACTION: Selector = Selector::new("menu-exit-action");
 pub(crate) const FILE_NEW_ACTION: Selector = Selector::new("menu-new-action");
