@@ -2,7 +2,7 @@
 //!
 //! A widget represent a message box
 
-use druid::kurbo::Size;
+use druid::kurbo::{Rect, Size};
 use druid::piet::{Color, UnitPoint};
 use druid::widget::{Align, Label, List, WidgetExt};
 use druid::{
@@ -94,8 +94,12 @@ impl<T: Data, L: lens::Lens<T, Arc<Vec<String>>>> Widget<T> for SnackBarContaine
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
-        self.bars.layout(ctx, &bc, data, env);
-        self.inner.layout(ctx, &bc, data, env)
+        let size = self.bars.layout(ctx, &bc, data, env);
+        self.inner.set_layout_rect(Rect::default().with_size(size));
+
+        let size = self.inner.layout(ctx, &bc, data, env);
+        self.inner.set_layout_rect(Rect::default().with_size(size));
+        size
     }
 
     fn paint(&mut self, paint_ctx: &mut PaintCtx, data: &T, env: &Env) {
