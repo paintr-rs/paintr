@@ -1,7 +1,6 @@
 use druid::piet::Color;
 use druid::widget::{Align, Container, Flex, Label, Padding};
 use druid::{
-    lens::{self, LensExt},
     theme, AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, Lens,
     LocalizedString, Widget, WindowDesc, WindowId,
 };
@@ -23,7 +22,7 @@ fn main() {
     let main_window = WindowDesc::new(ui_builder)
         .title(L!("paint-app-name"))
         .menu(menu::make_menu())
-        .window_size((400.0, 400.0));
+        .window_size((800.0, 600.0));
 
     AppLauncher::with_window(main_window)
         .delegate(Delegate)
@@ -90,8 +89,6 @@ fn ui_builder() -> impl Widget<State> {
 
     let label = Label::new(text.clone());
     let main_content = Container::new(Align::centered(Padding::new(5.0, label)));
-
-    let _ = lens::Id.then(State::notifications);
 
     SnackBarContainer::new(
         Flex::column().with_child(main_content, 1.0),
