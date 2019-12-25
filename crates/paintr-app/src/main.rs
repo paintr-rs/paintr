@@ -1,7 +1,7 @@
 use druid::piet::Color;
-use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, WidgetExt};
+use druid::widget::{Align, Either, Label, Padding, Scroll, WidgetExt};
 use druid::{
-    theme, AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, Lens,
+    theme, AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, Lens, LensExt,
     LocalizedString, Widget, WindowDesc, WindowId,
 };
 
@@ -14,7 +14,7 @@ macro_rules! L {
 mod commands;
 mod menu;
 mod widgets;
-use widgets::{Canvas, SnackBarContainer};
+use widgets::{Canvas, Named, SnackBarContainer};
 
 use std::sync::Arc;
 
@@ -38,7 +38,7 @@ struct Delegate;
 #[derive(Clone, Data, Default, Lens)]
 struct State {
     notifications: Arc<Vec<Arc<String>>>,
-    image: Option<Arc<image::DynamicImage>>,
+    image: Option<(Arc<std::path::PathBuf>, Arc<image::DynamicImage>)>,
 }
 
 impl State {
@@ -47,8 +47,15 @@ impl State {
     }
 
     fn do_open_image(&mut self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-        self.image = Some(Arc::new(image::open(path)?));
+        self.image = Some((Arc::new(path.to_owned()), Arc::new(image::open(path)?)));
         Ok(())
+    }
+
+    fn image_file_name(&self) -> String {
+        match &self.image {
+            None => "Untitled".into(),
+            Some((path, _)) => path.to_string_lossy().into(),
+        }
     }
 }
 
@@ -100,20 +107,30 @@ impl AppDelegate<State> for Delegate {
 
 fn ui_builder() -> impl Widget<State> {
     let text = L!("paintr-front-page-welcome");
-
     let label = Label::new(text.clone());
+
+    let image_lens = State::image.map(
+        |it| it.clone().map(|it| it.1),
+        |to: &mut _, from| {
+            if let Some(s) = to.as_mut() {
+                if let Some(f) = from {
+                    s.1 = f;
+                }
+            }
+        },
+    );
 
     let main_content = Either::new(
         |data: &State, &_| !data.image.is_some(),
-        Align::centered(Padding::new(5.0, label)),
+        Align::centered(Padding::new(10.0, label)),
         Align::centered(Padding::new(
-            5.0,
-            Scroll::new(Canvas::new().lens(State::image)),
+            10.0,
+            Named::new(
+                Scroll::new(Canvas::new().lens(image_lens)),
+                |data: &State, _env: &_| data.image_file_name(),
+            ),
         )),
     );
 
-    SnackBarContainer::new(
-        Flex::column().with_child(main_content, 1.0),
-        State::notifications,
-    )
+    SnackBarContainer::new(main_content, State::notifications)
 }
