@@ -2,4 +2,4 @@
 members = ["crates/*"]
 
 [patch.crates-io]
-direct2d = { path = '../direct2d-rs' }
+direct2d = { git = 'https://github.com/edwin0cheng/direct2d-rs', branch="fix-close-gb" }
