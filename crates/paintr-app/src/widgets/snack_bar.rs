@@ -10,6 +10,7 @@ use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, UpdateCtx, Widget, WidgetPod,
 };
 
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 pub struct SnackBarContainer<T, L>
@@ -19,14 +20,17 @@ where
     inner: WidgetPod<T, Box<dyn Widget<T>>>,
     bars: Align<T>,
     snackbar_lens: L,
-    t: f64,
+
+    lifes: HashMap<Arc<String>, f64>,
 }
 
-impl<T: Data, L: lens::Lens<T, Arc<Vec<String>>> + 'static + Clone> SnackBarContainer<T, L> {
+type MessagesData = Arc<Vec<Arc<String>>>;
+
+impl<T: Data, L: lens::Lens<T, MessagesData> + 'static + Clone> SnackBarContainer<T, L> {
     pub fn new(inner: impl Widget<T> + 'static, snackbar_lens: L) -> Self {
         let bars = List::new(|| {
             Align::right(
-                Label::new(|item: &String, _env: &_| item.clone())
+                Label::new(|item: &Arc<String>, _env: &_| item.as_ref().clone())
                     .padding(10.0)
                     .background(Color::grey(0.3)),
             )
@@ -38,16 +42,16 @@ impl<T: Data, L: lens::Lens<T, Arc<Vec<String>>> + 'static + Clone> SnackBarCont
             inner: WidgetPod::new(inner).boxed(),
             bars: Align::vertical(UnitPoint::BOTTOM_RIGHT, bars),
             snackbar_lens,
-            t: 0.0,
+            lifes: HashMap::default(),
         }
     }
 }
 
-impl<T: Data, L: lens::Lens<T, Arc<Vec<String>>>> SnackBarContainer<T, L> {
-    fn remove_item(&self, data: &mut T) {
+impl<T: Data, L: lens::Lens<T, MessagesData>> SnackBarContainer<T, L> {
+    fn remove_item(&self, data: &mut T, item: &Arc<String>) {
         self.snackbar_lens.with_mut(data, |d: &mut _| {
             if d.len() > 0 {
-                Arc::make_mut(d).remove(0);
+                Arc::make_mut(d).retain(|it| !Arc::ptr_eq(it, item));
             }
         })
     }
@@ -55,20 +59,37 @@ impl<T: Data, L: lens::Lens<T, Arc<Vec<String>>>> SnackBarContainer<T, L> {
     fn has_item(&self, data: &T) -> bool {
         self.snackbar_lens.get(data).len() > 0
     }
+
+    fn sync_lifes(&mut self, data: &MessagesData) {
+        let mut avails = HashSet::new();
+        for item in data.iter() {
+            self.lifes.entry(item.clone()).or_insert_with(|| 0.0);
+            avails.insert(item);
+        }
+        self.lifes.retain(|key, _| avails.contains(key));
+    }
 }
 
-impl<T: Data, L: lens::Lens<T, Arc<Vec<String>>>> Widget<T> for SnackBarContainer<T, L> {
+impl<T: Data, L: lens::Lens<T, MessagesData> + Clone> Widget<T> for SnackBarContainer<T, L> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         self.inner.event(ctx, event, data, env);
         self.bars.event(ctx, event, data, env);
 
         match event {
             Event::AnimFrame(interval) => {
-                self.t += (*interval as f64) * 1e-9;
-                if self.t >= 8.0 {
-                    self.remove_item(data);
-                    self.t = 0.0;
-                }
+                let dt = (*interval as f64) * 1e-9;
+                let mut remains = std::mem::take(&mut self.lifes);
+                remains.retain(|item, t| {
+                    *t += dt;
+                    if *t >= 3.0 {
+                        self.remove_item(data, item);
+                        false
+                    } else {
+                        true
+                    }
+                });
+
+                self.lifes = remains;
             }
             _ => (),
         }
@@ -82,11 +103,14 @@ impl<T: Data, L: lens::Lens<T, Arc<Vec<String>>>> Widget<T> for SnackBarContaine
         self.inner.update(ctx, data, env);
         self.bars.update(ctx, old_data, data, env);
 
+        let lens = self.snackbar_lens.clone();
+
         if let Some(d) = old_data {
-            self.snackbar_lens.with(d, |old| {
-                self.snackbar_lens.with(data, |new| {
+            lens.with(d, |old| {
+                lens.with(data, |new| {
                     if !new.same(old) {
                         ctx.invalidate();
+                        self.sync_lifes(new);
                     }
                 })
             })

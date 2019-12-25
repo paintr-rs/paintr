@@ -38,12 +38,12 @@ struct Delegate;
 
 #[derive(Clone, Data, Default, Lens)]
 struct State {
-    notifications: Arc<Vec<String>>,
+    notifications: Arc<Vec<Arc<String>>>,
 }
 
 impl State {
     fn show_notification(&mut self, s: &str) {
-        Arc::make_mut(&mut self.notifications).push(s.into());
+        Arc::make_mut(&mut self.notifications).push(Arc::new(s.into()));
     }
 }
 
