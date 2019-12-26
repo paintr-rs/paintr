@@ -107,6 +107,16 @@ impl AppDelegate<State> for Delegate {
                 }
                 _ => (),
             },
+            Event::KeyUp(_key) => {
+                // FIXME: a workaound for druid do not implement Hotkey for menu
+                #[cfg(target_os = "windows")]
+                {
+                    if let Some(cmd) = menu::find_command_by_hotkey(_key) {
+                        ctx.submit_command(cmd, None);
+                    }
+                }
+            }
+
             _ => (),
         };
 
