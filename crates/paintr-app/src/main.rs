@@ -19,9 +19,11 @@ use std::sync::Arc;
 use widgets::{Canvas, Named, SnackBarContainer};
 
 fn main() {
+    let app_state = AppState::default();
+
     let main_window = WindowDesc::new(ui_builder)
         .title(L!("paint-app-name"))
-        .menu(menu::make_menu())
+        .menu(menu::make_menu(&app_state))
         .window_size((800.0, 600.0));
 
     AppLauncher::with_window(main_window)
@@ -29,20 +31,20 @@ fn main() {
         .configure_env(|env| {
             env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
         })
-        .use_simple_logger()
-        .launch(State::default())
+        // .use_simple_logger()
+        .launch(app_state)
         .expect("launch failed");
 }
 
 struct Delegate;
 
 #[derive(Clone, Data, Default, Lens)]
-struct State {
+struct AppState {
     notifications: Arc<Vec<Arc<String>>>,
     image: Option<(Arc<std::path::PathBuf>, Arc<image::DynamicImage>)>,
 }
 
-impl State {
+impl AppState {
     fn show_notification(&mut self, s: &str) {
         Arc::make_mut(&mut self.notifications).push(Arc::new(s.into()));
     }
@@ -63,50 +65,85 @@ impl State {
         Ok(())
     }
 
+    fn do_save_as_image(
+        &mut self,
+        path: &std::path::Path,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let (_, img) = self.image.take().ok_or_else(|| "No image was found.")?;
+        img.save(path)?;
+        self.image = Some((Arc::new(path.to_path_buf()), img));
+        Ok(())
+    }
+
     fn image_file_name(&self) -> String {
         match &self.image {
             None => "Untitled".into(),
             Some((path, _)) => path.to_string_lossy().into(),
         }
     }
+
+    fn update_menu(&self, ctx: &mut DelegateCtx) {
+        ctx.submit_command(
+            druid::Command::new(druid::commands::SET_MENU, menu::make_menu(self)),
+            None,
+        );
+    }
 }
 
-impl AppDelegate<State> for Delegate {
+impl Delegate {
+    fn handle_command(
+        &mut self,
+        data: &mut AppState,
+        ctx: &mut DelegateCtx,
+        cmd: &druid::Command,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        match &cmd.selector {
+            &commands::FILE_EXIT_ACTION => {
+                ctx.submit_command(druid::commands::CLOSE_WINDOW.into(), None);
+            }
+            &commands::FILE_NEW_ACTION => {
+                data.do_new_image()?;
+                data.show_notification("New file created");
+                data.update_menu(ctx);
+            }
+            &druid::commands::OPEN_FILE => {
+                let info = cmd
+                    .get_object::<druid::FileInfo>()
+                    .ok_or_else(|| "api violation".to_string())?;
+                data.do_open_image(info.path())?;
+                data.show_notification(&format!("{} opened", data.image_file_name()));
+                data.update_menu(ctx);
+            }
+            &druid::commands::SAVE_FILE => {
+                let info = cmd
+                    .get_object::<druid::FileInfo>()
+                    .ok_or_else(|| "api violation".to_string())?;
+                data.do_save_as_image(info.path())?;
+                data.show_notification(&format!("{} saved", data.image_file_name()));
+                data.update_menu(ctx);
+            }
+
+            _ => (),
+        }
+
+        Ok(())
+    }
+}
+
+impl AppDelegate<AppState> for Delegate {
     fn event(
         &mut self,
         event: Event,
-        data: &mut State,
+        data: &mut AppState,
         _env: &Env,
         ctx: &mut DelegateCtx,
     ) -> Option<Event> {
         match event {
-            Event::Command(ref cmd) => match &cmd.selector {
-                &commands::FILE_EXIT_ACTION => {
-                    ctx.submit_command(druid::commands::CLOSE_WINDOW.into(), None);
+            Event::Command(ref cmd) => {
+                if let Err(err) = self.handle_command(data, ctx, cmd) {
+                    data.show_notification(err.description());
                 }
-                &commands::FILE_NEW_ACTION => match data.do_new_image() {
-                    Err(err) => {
-                        data.show_notification(err.description());
-                    }
-                    Ok(_) => {
-                        let s = format!("New file created");
-                        data.show_notification(&s);
-                    }
-                },
-                &druid::commands::OPEN_FILE => {
-                    let info = cmd.get_object::<druid::FileInfo>().expect("api violation");
-                    match data.do_open_image(info.path()) {
-                        Err(err) => {
-                            data.show_notification(err.description());
-                        }
-                        Ok(_) => {
-                            let s = format!("{} opened", info.path().to_str().unwrap_or("????"));
-                            data.show_notification(&s);
-                        }
-                    }
-                }
-                _ => (),
-            },
+            }
             Event::KeyUp(_key) => {
                 // FIXME: a workaound for druid do not implement Hotkey for menu
                 #[cfg(target_os = "windows")]
@@ -126,7 +163,7 @@ impl AppDelegate<State> for Delegate {
     fn window_removed(
         &mut self,
         _id: WindowId,
-        _data: &mut State,
+        _data: &mut AppState,
         _env: &Env,
         _ctx: &mut DelegateCtx,
     ) {
@@ -136,11 +173,11 @@ impl AppDelegate<State> for Delegate {
     }
 }
 
-fn ui_builder() -> impl Widget<State> {
+fn ui_builder() -> impl Widget<AppState> {
     let text = L!("paintr-front-page-welcome");
     let label = Label::new(text.clone());
 
-    let image_lens = State::image.map(
+    let image_lens = AppState::image.map(
         |it| it.clone().map(|it| it.1),
         |to: &mut _, from| {
             if let Some(s) = to.as_mut() {
@@ -152,16 +189,16 @@ fn ui_builder() -> impl Widget<State> {
     );
 
     let main_content = Either::new(
-        |data: &State, &_| !data.image.is_some(),
+        |data: &AppState, &_| !data.image.is_some(),
         Align::centered(Padding::new(10.0, label)),
         Align::centered(Padding::new(
             10.0,
             Named::new(
                 Scroll::new(Canvas::new().lens(image_lens)),
-                |data: &State, _env: &_| data.image_file_name(),
+                |data: &AppState, _env: &_| data.image_file_name(),
             ),
         )),
     );
 
-    SnackBarContainer::new(main_content, State::notifications)
+    SnackBarContainer::new(main_content, AppState::notifications)
 }

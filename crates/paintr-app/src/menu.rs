@@ -1,46 +1,48 @@
 use crate::commands;
-use druid::{Command, Data, HotKey, KeyCode, KeyEvent, MenuDesc, MenuItem, RawMods};
+use crate::AppState;
+use druid::{Command, HotKey, KeyCode, KeyEvent, MenuDesc, MenuItem, RawMods};
 
-pub(crate) fn make_menu<T: Data>() -> MenuDesc<T> {
-    MenuDesc::empty().append(file_menu())
+pub(crate) fn make_menu(app: &AppState) -> MenuDesc<AppState> {
+    MenuDesc::empty().append(file_menu(app))
 }
 
-fn file_menu<T: Data>() -> MenuDesc<T> {
+fn file_menu(app: &AppState) -> MenuDesc<AppState> {
     MenuDesc::new(L!("menu-file-menu"))
         .append(new())
+        .append_separator()
         .append(open())
+        .append_separator()
+        .append(save().disabled_if(|| app.image.is_none()))
         .append_separator()
         .append(exit())
 }
 
-fn open<T: Data>() -> MenuItem<T> {
-    MenuItem::new(L!("menu-file-open"), commands::file_open_command())
-        .hotkey(RawMods::Ctrl, KeyCode::KeyO)
-}
+macro_rules! register_menu_items {
+    ($($name:ident => ($sel:literal, $cmd:expr, $mods:ident, $keycode:ident)),*) => {
+        $(
+        fn $name() -> MenuItem<AppState> {
+            MenuItem::new(L!($sel), $cmd)
+                .hotkey(RawMods::$mods, KeyCode::$keycode)
+        })*
 
-fn new<T: Data>() -> MenuItem<T> {
-    MenuItem::new(L!("menu-file-new"), commands::FILE_NEW_ACTION)
-        .hotkey(RawMods::Ctrl, KeyCode::KeyN)
-}
-
-fn exit<T: Data>() -> MenuItem<T> {
-    MenuItem::new(L!("menu-file-exit"), commands::FILE_EXIT_ACTION)
-        .hotkey(RawMods::Alt, KeyCode::F4)
-}
-
-// A work around when druid menu hotkey is not implemented yet
-#[cfg(target_os = "windows")]
-pub fn find_command_by_hotkey(key: KeyEvent) -> Option<Command> {
-    match key {
-        _ if HotKey::new(RawMods::Ctrl, KeyCode::KeyO).matches(key) => {
-            Some(commands::file_open_command())
+        // A work around when druid menu hotkey is not implemented yet
+        #[cfg(target_os = "windows")]
+        pub fn find_command_by_hotkey(key: KeyEvent) -> Option<Command> {
+            match key {
+                $(
+                    _ if HotKey::new(RawMods::$mods, KeyCode::$keycode).matches(key) => {
+                        Some($cmd.into())
+                    }
+                )*
+                _ => None,
+            }
         }
-        _ if HotKey::new(RawMods::Ctrl, KeyCode::KeyN).matches(key) => {
-            Some(commands::FILE_NEW_ACTION.into())
-        }
-        _ if HotKey::new(RawMods::Ctrl, KeyCode::F4).matches(key) => {
-            Some(commands::FILE_EXIT_ACTION.into())
-        }
-        _ => None,
     }
+}
+
+register_menu_items! {
+    open => ("menu-file-open", commands::file_open_command(), Ctrl, KeyO),
+    new => ("menu-file-new", commands::FILE_NEW_ACTION, Ctrl, KeyN),
+    save => ("menu-file-save-as", commands::file_save_as_command(), CtrlShift, KeyS),
+    exit => ("menu-file-exit", commands::FILE_EXIT_ACTION, Alt, F4)
 }

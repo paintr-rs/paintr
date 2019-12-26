@@ -10,3 +10,10 @@ pub(crate) fn file_open_command() -> Command {
         FileDialogOptions::new().allowed_types(vec![IMAGE_FILE_TYPE]),
     )
 }
+
+pub(crate) fn file_save_as_command() -> Command {
+    Command::new(
+        druid::commands::SHOW_SAVE_PANEL,
+        FileDialogOptions::new().allowed_types(vec![IMAGE_FILE_TYPE]),
+    )
+}
