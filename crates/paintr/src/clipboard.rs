@@ -59,48 +59,53 @@ mod windows {
         )?))
     }
 
-    // DWORD        bV5Size;            4   0
-    // LONG         bV5Width;           4   4
-    // LONG         bV5Height;          4   8
-    // WORD         bV5Planes;          2   12
-    // WORD         bV5BitCount;        2   14
-    // DWORD        bV5Compression;     4   16
-    // DWORD        bV5SizeImage;       4   20
-    // LONG         bV5XPelsPerMeter;   4   24
-    // LONG         bV5YPelsPerMeter;   4   28
-    // DWORD        bV5ClrUsed;         4   32
+    // BITMAPV5HEADER
+    // DWORD        bV5Size;            4   OFFSET 0
+    // LONG         bV5Width;           4   OFFSET 4
+    // LONG         bV5Height;          4   OFFSET 8
+    // WORD         bV5Planes;          2   OFFSET 12
+    // WORD         bV5BitCount;        2   OFFSET 14
+    // DWORD        bV5Compression;     4   OFFSET 16
+    // DWORD        bV5SizeImage;       4   OFFSET 20
+    // LONG         bV5XPelsPerMeter;   4   OFFSET 24
+    // LONG         bV5YPelsPerMeter;   4   OFFSET 28
+    // DWORD        bV5ClrUsed;         4   OFFSET 32
 
     const BI_BITFIELDS: u32 = 0x0003;
+    const V5_COMPRESSION_OFFSET: u64 = 16;
+    const V5_CLR_USED_OFFSET: u64 = 32;
+    const BIT_MASK_SIZE: u32 = 12;
+    const FILE_HEADER_SIZE: u32 = 14;
 
     // https://itnext.io/bits-to-bitmaps-a-simple-walkthrough-of-bmp-image-format-765dc6857393
     fn compute_bmp_header(content: &[u8]) -> Result<Vec<u8>, std::io::Error> {
         let mut cursor = Cursor::new(content);
         let dib_header_size = cursor.read_u32::<LittleEndian>()?;
 
-        cursor.set_position(16);
+        cursor.set_position(V5_COMPRESSION_OFFSET);
         let v5_compession = cursor.read_u32::<LittleEndian>()?;
 
         // FIXME: compute correct color table size
-        cursor.set_position(32);
+        cursor.set_position(V5_CLR_USED_OFFSET);
         let color_count = cursor.read_u32::<LittleEndian>()?;
-        let sizeof_rgb = 4;
+        let sizeof_rgba = 4;
 
-        let mut pixel_data_offset = dib_header_size + color_count * sizeof_rgb;
+        let mut pixel_data_offset = dib_header_size + color_count * sizeof_rgba;
         if v5_compession == BI_BITFIELDS {
-            pixel_data_offset += 12; //bit masks follow the header
+            pixel_data_offset += BIT_MASK_SIZE; //bit masks follow the header
         }
 
         let mut buf = std::io::BufWriter::new(Vec::new());
         // File Type
         buf.write(b"BM")?;
         // File Size
-        buf.write_u32::<LittleEndian>(content.len() as u32 + 14)?;
+        buf.write_u32::<LittleEndian>(content.len() as u32 + FILE_HEADER_SIZE)?;
         // Reserved
         buf.write_u16::<LittleEndian>(0)?;
         // Reserved
         buf.write_u16::<LittleEndian>(0)?;
         // the offset of actual pixel data in bytes
-        buf.write_u32::<LittleEndian>(14 + pixel_data_offset)?;
+        buf.write_u32::<LittleEndian>(FILE_HEADER_SIZE + pixel_data_offset)?;
 
         Ok(buf.into_inner()?)
     }
