@@ -1,8 +1,3 @@
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use druid::Application;
-use std::io::Cursor;
-use std::io::Write;
-
 #[derive(Debug)]
 pub enum ClipboardError {
     IOError(std::io::Error),
@@ -10,12 +5,11 @@ pub enum ClipboardError {
 }
 
 impl std::error::Error for ClipboardError {}
-
 impl std::fmt::Display for ClipboardError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ClipboardError::IOError(err) => write!(f, "{}", err),
-            ClipboardError::ImageError(err) => write!(f, "{}", err),
+            ClipboardError::IOError(err) => write!(f, "ClipboardError: {}", err),
+            ClipboardError::ImageError(err) => write!(f, "ClipboardError: {}", err),
         }
     }
 }
@@ -32,70 +26,82 @@ impl From<image::ImageError> for ClipboardError {
     }
 }
 
-// DWORD        bV5Size;            4   0
-// LONG         bV5Width;           4   4
-// LONG         bV5Height;          4   8
-// WORD         bV5Planes;          2   12
-// WORD         bV5BitCount;        2   14
-// DWORD        bV5Compression;     4   16
-// DWORD        bV5SizeImage;       4   20
-// LONG         bV5XPelsPerMeter;   4   24
-// LONG         bV5YPelsPerMeter;   4   28
-// DWORD        bV5ClrUsed;         4   32
+#[cfg(target_os = "windows")]
+pub use windows::get_image_from_clipboard;
 
-const BI_BITFIELDS: u32 = 0x0003;
+#[cfg(target_os = "windows")]
+mod windows {
+    use super::ClipboardError;
+    use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+    use druid::Application;
+    use std::io::Cursor;
+    use std::io::Write;
 
-// https://itnext.io/bits-to-bitmaps-a-simple-walkthrough-of-bmp-image-format-765dc6857393
-fn compute_bmp_header(content: &[u8]) -> Result<Vec<u8>, std::io::Error> {
-    let mut cursor = Cursor::new(content);
-    let dib_header_size = cursor.read_u32::<LittleEndian>()?;
+    pub fn get_image_from_clipboard() -> Result<Option<image::DynamicImage>, ClipboardError> {
+        let clipboard = Application::clipboard();
 
-    cursor.set_position(16);
-    let v5_compession = cursor.read_u32::<LittleEndian>()?;
+        let format_id = match clipboard.preferred_format(&["CF_DIBV5"]) {
+            Some(id) => id,
+            None => return Ok(None),
+        };
 
-    // FIXME: compute correct color table size
-    cursor.set_position(32);
-    let color_count = cursor.read_u32::<LittleEndian>()?;
-    let sizeof_rgb = 4;
+        let mut data = match clipboard.get_format(format_id) {
+            Some(data) => data,
+            None => return Ok(None),
+        };
 
-    let mut pixel_data_offset = dib_header_size + color_count * sizeof_rgb;
-    if v5_compession == BI_BITFIELDS {
-        pixel_data_offset += 12; //bit masks follow the header
+        let mut bmp_buf = compute_bmp_header(&data)?;
+        bmp_buf.append(&mut data);
+
+        Ok(Some(image::load(
+            Cursor::new(bmp_buf),
+            image::ImageFormat::BMP,
+        )?))
     }
 
-    let mut buf = std::io::BufWriter::new(Vec::new());
-    // File Type
-    buf.write(b"BM")?;
-    // File Size
-    buf.write_u32::<LittleEndian>(content.len() as u32 + 14)?;
-    // Reserved
-    buf.write_u16::<LittleEndian>(0)?;
-    // Reserved
-    buf.write_u16::<LittleEndian>(0)?;
-    // the offset of actual pixel data in bytes
-    buf.write_u32::<LittleEndian>(14 + pixel_data_offset)?;
+    // DWORD        bV5Size;            4   0
+    // LONG         bV5Width;           4   4
+    // LONG         bV5Height;          4   8
+    // WORD         bV5Planes;          2   12
+    // WORD         bV5BitCount;        2   14
+    // DWORD        bV5Compression;     4   16
+    // DWORD        bV5SizeImage;       4   20
+    // LONG         bV5XPelsPerMeter;   4   24
+    // LONG         bV5YPelsPerMeter;   4   28
+    // DWORD        bV5ClrUsed;         4   32
 
-    Ok(buf.into_inner()?)
-}
+    const BI_BITFIELDS: u32 = 0x0003;
 
-pub fn get_image_from_clipboard() -> Result<Option<image::DynamicImage>, ClipboardError> {
-    let clipboard = Application::clipboard();
+    // https://itnext.io/bits-to-bitmaps-a-simple-walkthrough-of-bmp-image-format-765dc6857393
+    fn compute_bmp_header(content: &[u8]) -> Result<Vec<u8>, std::io::Error> {
+        let mut cursor = Cursor::new(content);
+        let dib_header_size = cursor.read_u32::<LittleEndian>()?;
 
-    let format_id = match clipboard.preferred_format(&["CF_DIBV5"]) {
-        Some(id) => id,
-        None => return Ok(None),
-    };
+        cursor.set_position(16);
+        let v5_compession = cursor.read_u32::<LittleEndian>()?;
 
-    let mut data = match clipboard.get_format(format_id) {
-        Some(data) => data,
-        None => return Ok(None),
-    };
+        // FIXME: compute correct color table size
+        cursor.set_position(32);
+        let color_count = cursor.read_u32::<LittleEndian>()?;
+        let sizeof_rgb = 4;
 
-    let mut bmp_buf = compute_bmp_header(&data)?;
-    bmp_buf.append(&mut data);
-    let cursor = Cursor::new(bmp_buf);
+        let mut pixel_data_offset = dib_header_size + color_count * sizeof_rgb;
+        if v5_compession == BI_BITFIELDS {
+            pixel_data_offset += 12; //bit masks follow the header
+        }
 
-    let bmp = image::load(cursor, image::ImageFormat::BMP)?;
+        let mut buf = std::io::BufWriter::new(Vec::new());
+        // File Type
+        buf.write(b"BM")?;
+        // File Size
+        buf.write_u32::<LittleEndian>(content.len() as u32 + 14)?;
+        // Reserved
+        buf.write_u16::<LittleEndian>(0)?;
+        // Reserved
+        buf.write_u16::<LittleEndian>(0)?;
+        // the offset of actual pixel data in bytes
+        buf.write_u32::<LittleEndian>(14 + pixel_data_offset)?;
 
-    Ok(Some(bmp))
+        Ok(buf.into_inner()?)
+    }
 }
