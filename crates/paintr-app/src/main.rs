@@ -4,6 +4,7 @@ use druid::{
     theme, AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, Lens, LensExt,
     LocalizedString, Widget, WindowDesc, WindowId,
 };
+use paintr::get_image_from_clipboard;
 
 macro_rules! L {
     ($str:literal) => {
@@ -14,9 +15,8 @@ macro_rules! L {
 mod commands;
 mod menu;
 mod widgets;
-use widgets::{Canvas, Named, SnackBarContainer};
-
 use std::sync::Arc;
+use widgets::{Canvas, Named, SnackBarContainer};
 
 fn main() {
     let main_window = WindowDesc::new(ui_builder)
@@ -29,6 +29,7 @@ fn main() {
         .configure_env(|env| {
             env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
         })
+        .use_simple_logger()
         .launch(State::default())
         .expect("launch failed");
 }
@@ -48,6 +49,17 @@ impl State {
 
     fn do_open_image(&mut self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
         self.image = Some((Arc::new(path.to_owned()), Arc::new(image::open(path)?)));
+        Ok(())
+    }
+
+    fn do_new_image(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let img = get_image_from_clipboard()?
+            .ok_or_else(|| "Clipboard is empty / non-image".to_string())?;
+
+        self.image = Some((
+            Arc::new(std::path::Path::new("Untitled").into()),
+            Arc::new(img),
+        ));
         Ok(())
     }
 
@@ -72,6 +84,15 @@ impl AppDelegate<State> for Delegate {
                 &commands::FILE_EXIT_ACTION => {
                     ctx.submit_command(druid::commands::CLOSE_WINDOW.into(), None);
                 }
+                &commands::FILE_NEW_ACTION => match data.do_new_image() {
+                    Err(err) => {
+                        data.show_notification(err.description());
+                    }
+                    Ok(_) => {
+                        let s = format!("New file created");
+                        data.show_notification(&s);
+                    }
+                },
                 &druid::commands::OPEN_FILE => {
                     let info = cmd.get_object::<druid::FileInfo>().expect("api violation");
                     match data.do_open_image(info.path()) {
