@@ -2,8 +2,7 @@ on:
   pull_request:
   push:
     branches:
-      - test-ci
-      # - master
+      - master
       # - staging
       # - trying
 
