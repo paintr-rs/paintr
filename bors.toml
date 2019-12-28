@@ -1,5 +1,7 @@
 status = [
     'rustfmt',
-    'test %',
+    'test (macOS-latest)',
+    'test (windows-2019)',
+    'test (ubuntu-latest)'
 ]
 delete_merged_branches = true
