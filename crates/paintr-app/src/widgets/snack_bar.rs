@@ -13,6 +13,15 @@ use druid::{
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+#[derive(Hash, Clone)]
+struct TimerKey(Arc<String>);
+impl PartialEq for TimerKey {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+impl Eq for TimerKey {}
+
 pub struct SnackBarContainer<T, L>
 where
     T: Data,
@@ -21,7 +30,7 @@ where
     bars: Align<T>,
     snackbar_lens: L,
 
-    lifes: HashMap<Arc<String>, f64>,
+    lifes: HashMap<TimerKey, f64>,
 }
 
 type MessagesData = Arc<Vec<Arc<String>>>;
@@ -63,8 +72,9 @@ impl<T: Data, L: lens::Lens<T, MessagesData>> SnackBarContainer<T, L> {
     fn sync_lifes(&mut self, data: &MessagesData) {
         let mut avails = HashSet::new();
         for item in data.iter() {
-            self.lifes.entry(item.clone()).or_insert_with(|| 0.0);
-            avails.insert(item);
+            let key = TimerKey(item.clone());
+            self.lifes.entry(key.clone()).or_insert_with(|| 0.0);
+            avails.insert(key);
         }
         self.lifes.retain(|key, _| avails.contains(key));
     }
@@ -82,14 +92,16 @@ impl<T: Data, L: lens::Lens<T, MessagesData> + Clone> Widget<T> for SnackBarCont
                 remains.retain(|item, t| {
                     *t += dt;
                     if *t >= 3.0 {
-                        self.remove_item(data, item);
+                        self.remove_item(data, &item.0);
                         false
                     } else {
                         true
                     }
                 });
-
                 self.lifes = remains;
+                self.snackbar_lens.clone().with(data, |it| {
+                    self.sync_lifes(it);
+                });
             }
             _ => (),
         }
