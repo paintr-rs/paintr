@@ -16,10 +16,16 @@ mod commands;
 mod menu;
 mod widgets;
 use std::sync::Arc;
-use widgets::{Canvas, Named, SnackBarContainer};
+use widgets::{
+    notif_bar::{Notification, NotificationContainer},
+    Canvas, Named,
+};
 
 fn main() {
-    let app_state = AppState::default();
+    let app_state = AppState {
+        notifications: Arc::new(Vec::new()),
+        image: None,
+    };
 
     let main_window = WindowDesc::new(ui_builder)
         .title(L!("paint-app-name"))
@@ -38,15 +44,15 @@ fn main() {
 
 struct Delegate;
 
-#[derive(Clone, Data, Default, Lens)]
+#[derive(Clone, Data, Lens)]
 struct AppState {
-    notifications: Arc<Vec<Arc<String>>>,
+    notifications: Arc<Vec<Notification>>,
     image: Option<(Arc<std::path::PathBuf>, Arc<image::DynamicImage>)>,
 }
 
 impl AppState {
-    fn show_notification(&mut self, s: &str) {
-        Arc::make_mut(&mut self.notifications).push(Arc::new(s.into()));
+    fn show_notification(&mut self, n: Notification) {
+        Arc::make_mut(&mut self.notifications).push(n);
     }
 
     fn do_open_image(&mut self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -103,7 +109,7 @@ impl Delegate {
             }
             &commands::FILE_NEW_ACTION => {
                 data.do_new_image()?;
-                data.show_notification("New file created");
+                data.show_notification(Notification::info("New file created"));
                 data.update_menu(ctx);
             }
             &druid::commands::OPEN_FILE => {
@@ -111,7 +117,10 @@ impl Delegate {
                     .get_object::<druid::FileInfo>()
                     .ok_or_else(|| "api violation".to_string())?;
                 data.do_open_image(info.path())?;
-                data.show_notification(&format!("{} opened", data.image_file_name()));
+                data.show_notification(Notification::info(format!(
+                    "{} opened",
+                    data.image_file_name()
+                )));
                 data.update_menu(ctx);
             }
             &druid::commands::SAVE_FILE => {
@@ -119,7 +128,10 @@ impl Delegate {
                     .get_object::<druid::FileInfo>()
                     .ok_or_else(|| "api violation".to_string())?;
                 data.do_save_as_image(info.path())?;
-                data.show_notification(&format!("{} saved", data.image_file_name()));
+                data.show_notification(Notification::info(format!(
+                    "{} saved",
+                    data.image_file_name()
+                )));
                 data.update_menu(ctx);
             }
 
@@ -141,7 +153,7 @@ impl AppDelegate<AppState> for Delegate {
         match event {
             Event::Command(ref cmd) => {
                 if let Err(err) = self.handle_command(data, ctx, cmd) {
-                    data.show_notification(err.description());
+                    data.show_notification(Notification::error(err.description()));
                 }
             }
 
@@ -191,5 +203,5 @@ fn ui_builder() -> impl Widget<AppState> {
         )),
     );
 
-    SnackBarContainer::new(main_content, AppState::notifications)
+    NotificationContainer::new(main_content, AppState::notifications)
 }
