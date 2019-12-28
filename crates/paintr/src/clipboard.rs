@@ -58,10 +58,7 @@ mod windows {
         let mut bmp_buf = compute_bmp_header(&data)?;
         bmp_buf.append(&mut data);
 
-        Ok(Some(image::load(
-            Cursor::new(bmp_buf),
-            image::ImageFormat::BMP,
-        )?))
+        Ok(Some(image::load(Cursor::new(bmp_buf), image::ImageFormat::BMP)?))
     }
 
     // BITMAPV5HEADER

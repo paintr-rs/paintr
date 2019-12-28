@@ -62,9 +62,7 @@ impl Widget<DataType> for Canvas {
         let size = (img.width() as usize, img.height() as usize);
 
         // FIXME: Draw image only in paint_ctx.region
-        let image = paint_ctx
-            .make_image(size.0, size.1, &img, ImageFormat::RgbaSeparate)
-            .unwrap();
+        let image = paint_ctx.make_image(size.0, size.1, &img, ImageFormat::RgbaSeparate).unwrap();
         // The image is automatically scaled to fit the rect you pass to draw_image
         paint_ctx.draw_image(
             &image,

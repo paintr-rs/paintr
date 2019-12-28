@@ -50,17 +50,11 @@ pub enum NotificationKind {
 
 impl Notification {
     pub fn info(s: impl Into<String>) -> Notification {
-        Notification {
-            kind: NotificationKind::Info,
-            msg: Arc::new(s.into()),
-        }
+        Notification { kind: NotificationKind::Info, msg: Arc::new(s.into()) }
     }
 
     pub fn error(s: impl Into<String>) -> Notification {
-        Notification {
-            kind: NotificationKind::Error,
-            msg: Arc::new(s.into()),
-        }
+        Notification { kind: NotificationKind::Error, msg: Arc::new(s.into()) }
     }
 }
 
@@ -72,17 +66,15 @@ impl<T: Data, L: lens::Lens<T, NotificationsData> + 'static + Clone> Notificatio
             Align::right(
                 Label::new(|item: &Notification, _env: &_| item.msg.as_ref().clone())
                     .padding(10.0)
-                    .painter(
-                        |paint_ctx: &mut PaintCtx, data: &Notification, _env: &Env| {
-                            let rt = Rect::from_origin_size(Point::ORIGIN, paint_ctx.size());
-                            let color = match data.kind {
-                                NotificationKind::Info => Color::grey(0.3),
-                                NotificationKind::Error => Color::rgb(0.6, 0.0, 0.0),
-                            };
+                    .painter(|paint_ctx: &mut PaintCtx, data: &Notification, _env: &Env| {
+                        let rt = Rect::from_origin_size(Point::ORIGIN, paint_ctx.size());
+                        let color = match data.kind {
+                            NotificationKind::Info => Color::grey(0.3),
+                            NotificationKind::Error => Color::rgb(0.6, 0.0, 0.0),
+                        };
 
-                            paint_ctx.fill(rt, &color);
-                        },
-                    ),
+                        paint_ctx.fill(rt, &color);
+                    }),
             )
             .padding((10.0, 5.0))
         })
@@ -174,12 +166,10 @@ impl<T: Data, L: lens::Lens<T, NotificationsData> + Clone> Widget<T>
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let size = self.bars.layout(ctx, &bc, data, env);
-        self.inner
-            .set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
+        self.inner.set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
 
         let size = self.inner.layout(ctx, &bc, data, env);
-        self.inner
-            .set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
+        self.inner.set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
         size
     }
 
