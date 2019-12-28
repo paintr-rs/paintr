@@ -1,0 +1,81 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - test-ci
+      # - master
+      # - staging
+      # - trying
+
+jobs:
+  rustfmt:
+    runs-on: ubuntu-latest
+    name: rustfmt
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: rustfmt
+          override: true
+
+      - name: install rustfmt
+        run: rustup component add rustfmt
+
+      - name: cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  test-stable:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macOS-latest, windows-2019, ubuntu-latest]
+    name: cargo test stable
+    env:
+      RUSTFLAGS: -D warnings
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: install cairo
+        run: brew install cairo
+        if: contains(matrix.os, 'mac')
+
+      - name: install libgtk-dev
+        run: |
+          sudo apt update
+          sudo apt install libgtk-3-dev
+        if: contains(matrix.os, 'ubuntu')
+
+      - name: install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      
+      - name: cargo target cache
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: compile
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-run
+
+      - name: test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all
+
+  
