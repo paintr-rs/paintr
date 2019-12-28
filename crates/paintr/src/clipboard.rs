@@ -29,7 +29,7 @@ impl From<image::ImageError> for ClipboardError {
 #[cfg(target_os = "windows")]
 pub use windows::get_image_from_clipboard;
 
-#[cfg(any(target_os = "linux", target_os = "mac"))]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn get_image_from_clipboard() -> Result<Option<image::DynamicImage>, ClipboardError> {
     unimplemented!();
 }
