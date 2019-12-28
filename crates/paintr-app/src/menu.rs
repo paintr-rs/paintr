@@ -1,6 +1,6 @@
 use crate::commands;
 use crate::AppState;
-use druid::{Command, HotKey, KeyCode, KeyEvent, MenuDesc, MenuItem, RawMods};
+use druid::{KeyCode, MenuDesc, MenuItem, RawMods};
 
 pub(crate) fn make_menu(app: &AppState) -> MenuDesc<AppState> {
     MenuDesc::empty().append(file_menu(app))
@@ -24,19 +24,6 @@ macro_rules! register_menu_items {
             MenuItem::new(L!($sel), $cmd)
                 .hotkey(RawMods::$mods, KeyCode::$keycode)
         })*
-
-        // A work around when druid menu hotkey is not implemented yet
-        #[cfg(target_os = "windows")]
-        pub fn find_command_by_hotkey(key: KeyEvent) -> Option<Command> {
-            match key {
-                $(
-                    _ if HotKey::new(RawMods::$mods, KeyCode::$keycode).matches(key) => {
-                        Some($cmd.into())
-                    }
-                )*
-                _ => None,
-            }
-        }
     }
 }
 
