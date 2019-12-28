@@ -3,12 +3,15 @@
 //! A widget represent a message box
 
 use druid::kurbo::{Point, Rect, Size};
+use druid::piet::RenderContext;
 use druid::piet::{Color, UnitPoint};
 use druid::widget::{Align, Label, List, WidgetExt};
 use druid::{
     lens::{self, LensExt},
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, UpdateCtx, Widget, WidgetPod,
 };
+
+use super::painter::Painter;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -22,7 +25,7 @@ impl PartialEq for TimerKey {
 }
 impl Eq for TimerKey {}
 
-pub struct SnackBarContainer<T, L>
+pub struct NotificationContainer<T, L>
 where
     T: Data,
 {
@@ -33,15 +36,53 @@ where
     lifes: HashMap<TimerKey, f64>,
 }
 
-type MessagesData = Arc<Vec<Arc<String>>>;
+#[derive(Data, Debug, Clone, Eq, PartialEq, Hash)]
+pub struct Notification {
+    pub kind: NotificationKind,
+    pub msg: Arc<String>,
+}
 
-impl<T: Data, L: lens::Lens<T, MessagesData> + 'static + Clone> SnackBarContainer<T, L> {
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Data)]
+pub enum NotificationKind {
+    Info,
+    Error,
+}
+
+impl Notification {
+    pub fn info(s: impl Into<String>) -> Notification {
+        Notification {
+            kind: NotificationKind::Info,
+            msg: Arc::new(s.into()),
+        }
+    }
+
+    pub fn error(s: impl Into<String>) -> Notification {
+        Notification {
+            kind: NotificationKind::Error,
+            msg: Arc::new(s.into()),
+        }
+    }
+}
+
+type NotificationsData = Arc<Vec<Notification>>;
+
+impl<T: Data, L: lens::Lens<T, NotificationsData> + 'static + Clone> NotificationContainer<T, L> {
     pub fn new(inner: impl Widget<T> + 'static, snackbar_lens: L) -> Self {
         let bars = List::new(|| {
             Align::right(
-                Label::new(|item: &Arc<String>, _env: &_| item.as_ref().clone())
+                Label::new(|item: &Notification, _env: &_| item.msg.as_ref().clone())
                     .padding(10.0)
-                    .background(Color::grey(0.3)),
+                    .painter(
+                        |paint_ctx: &mut PaintCtx, data: &Notification, _env: &Env| {
+                            let rt = Rect::from_origin_size(Point::ORIGIN, paint_ctx.size());
+                            let color = match data.kind {
+                                NotificationKind::Info => Color::grey(0.3),
+                                NotificationKind::Error => Color::rgb(0.6, 0.0, 0.0),
+                            };
+
+                            paint_ctx.fill(rt, &color);
+                        },
+                    ),
             )
             .padding((10.0, 5.0))
         })
@@ -56,11 +97,11 @@ impl<T: Data, L: lens::Lens<T, MessagesData> + 'static + Clone> SnackBarContaine
     }
 }
 
-impl<T: Data, L: lens::Lens<T, MessagesData>> SnackBarContainer<T, L> {
+impl<T: Data, L: lens::Lens<T, NotificationsData>> NotificationContainer<T, L> {
     fn remove_item(&self, data: &mut T, item: &Arc<String>) {
         self.snackbar_lens.with_mut(data, |d: &mut _| {
             if d.len() > 0 {
-                Arc::make_mut(d).retain(|it| !Arc::ptr_eq(it, item));
+                Arc::make_mut(d).retain(|it| !Arc::ptr_eq(&it.msg, item));
             }
         })
     }
@@ -69,10 +110,10 @@ impl<T: Data, L: lens::Lens<T, MessagesData>> SnackBarContainer<T, L> {
         self.snackbar_lens.get(data).len() > 0
     }
 
-    fn sync_lifes(&mut self, data: &MessagesData) {
+    fn sync_lifes(&mut self, data: &NotificationsData) {
         let mut avails = HashSet::new();
         for item in data.iter() {
-            let key = TimerKey(item.clone());
+            let key = TimerKey(item.msg.clone());
             self.lifes.entry(key.clone()).or_insert_with(|| 0.0);
             avails.insert(key);
         }
@@ -80,7 +121,9 @@ impl<T: Data, L: lens::Lens<T, MessagesData>> SnackBarContainer<T, L> {
     }
 }
 
-impl<T: Data, L: lens::Lens<T, MessagesData> + Clone> Widget<T> for SnackBarContainer<T, L> {
+impl<T: Data, L: lens::Lens<T, NotificationsData> + Clone> Widget<T>
+    for NotificationContainer<T, L>
+{
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         self.inner.event(ctx, event, data, env);
         self.bars.event(ctx, event, data, env);
