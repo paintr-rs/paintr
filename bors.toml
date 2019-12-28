@@ -1,2 +1,2 @@
-status = ["Rust Format", "Test"]
+status = ["RustFmt", "Test"]
 delete_merged_branches = true
