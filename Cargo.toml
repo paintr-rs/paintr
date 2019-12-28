@@ -3,3 +3,6 @@ members = ["crates/*"]
 
 [patch.crates-io]
 direct2d = { git = 'https://github.com/edwin0cheng/direct2d-rs', branch="fix-close-gb" }
+
+# druid = { path = '../druid/druid' }
+druid = { git = 'https://github.com/edwin0cheng/druid', branch="dev" }
