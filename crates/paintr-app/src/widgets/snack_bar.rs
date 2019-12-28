@@ -98,7 +98,7 @@ impl<T: Data, L: lens::Lens<T, MessagesData> + Clone> Widget<T> for SnackBarCont
                         true
                     }
                 });
-                self.lifes = remains;
+                self.lifes = rema_ins;
                 self.snackbar_lens.clone().with(data, |it| {
                     self.sync_lifes(it);
                 });
