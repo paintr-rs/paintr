@@ -1,0 +1,2 @@
+status = ["Rust Format", "Test"]
+delete_merged_branches = true

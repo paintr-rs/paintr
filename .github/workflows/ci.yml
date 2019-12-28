@@ -8,6 +8,7 @@ on:
 
 jobs:
   rustfmt:
+    name: Rust Format
     runs-on: ubuntu-latest
     name: rustfmt
     steps:
@@ -31,6 +32,7 @@ jobs:
           args: --all -- --check
 
   test-stable:
+    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
