@@ -23,15 +23,13 @@ impl<T: Data> Widget<T> for Named<T> {
     }
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let size = self.label.layout(ctx, &bc, data, env);
-        self.inner
-            .set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
+        self.inner.set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
 
         let header_offset = size.height;
         let child_bc = bc.shrink((0.0, header_offset));
         let size = self.inner.layout(ctx, &child_bc, data, env);
         let origin = Point::new(0.0, header_offset);
-        self.inner
-            .set_layout_rect(Rect::from_origin_size(origin, size));
+        self.inner.set_layout_rect(Rect::from_origin_size(origin, size));
 
         Size::new(size.width, size.height + header_offset)
     }
@@ -57,9 +55,6 @@ impl<T: Data> Named<T> {
     {
         let label = Label::new(label.into()).padding(10.0);
 
-        Named {
-            inner: WidgetPod::new(inner).boxed(),
-            label: Box::new(label),
-        }
+        Named { inner: WidgetPod::new(inner).boxed(), label: Box::new(label) }
     }
 }

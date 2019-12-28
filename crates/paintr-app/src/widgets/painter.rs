@@ -21,8 +21,7 @@ impl<T: Data> Widget<T> for Paint<T> {
     }
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let size = self.inner.layout(ctx, bc, data, env);
-        self.inner
-            .set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
+        self.inner.set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
         size
     }
     fn paint(&mut self, paint_ctx: &mut PaintCtx, data: &T, env: &Env) {
@@ -40,9 +39,6 @@ where
     W: Widget<T> + 'static,
 {
     fn painter(self, f: impl Fn(&mut PaintCtx, &T, &Env) + 'static) -> Paint<T> {
-        Paint {
-            inner: WidgetPod::new(self).boxed(),
-            f: Box::new(f),
-        }
+        Paint { inner: WidgetPod::new(self).boxed(), f: Box::new(f) }
     }
 }

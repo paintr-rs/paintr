@@ -22,10 +22,7 @@ use widgets::{
 };
 
 fn main() {
-    let app_state = AppState {
-        notifications: Arc::new(Vec::new()),
-        image: None,
-    };
+    let app_state = AppState { notifications: Arc::new(Vec::new()), image: None };
 
     let main_window = WindowDesc::new(ui_builder)
         .title(L!("paint-app-name"))
@@ -64,10 +61,7 @@ impl AppState {
         let img = get_image_from_clipboard()?
             .ok_or_else(|| "Clipboard is empty / non-image".to_string())?;
 
-        self.image = Some((
-            Arc::new(std::path::Path::new("Untitled").into()),
-            Arc::new(img),
-        ));
+        self.image = Some((Arc::new(std::path::Path::new("Untitled").into()), Arc::new(img)));
         Ok(())
     }
 
@@ -196,10 +190,9 @@ fn ui_builder() -> impl Widget<AppState> {
         Align::centered(Padding::new(10.0, label)),
         Align::centered(Padding::new(
             10.0,
-            Named::new(
-                Scroll::new(Canvas::new().lens(image_lens)),
-                |data: &AppState, _env: &_| data.image_file_name(),
-            ),
+            Named::new(Scroll::new(Canvas::new().lens(image_lens)), |data: &AppState, _env: &_| {
+                data.image_file_name()
+            }),
         )),
     );
 
