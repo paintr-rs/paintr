@@ -18,7 +18,7 @@ mod widgets;
 use std::sync::Arc;
 use widgets::{
     notif_bar::{Notification, NotificationContainer},
-    Canvas, Named,
+    Canvas, CanvasData, Named,
 };
 
 fn main() {
@@ -44,7 +44,7 @@ struct Delegate;
 #[derive(Clone, Data, Lens)]
 struct AppState {
     notifications: Arc<Vec<Notification>>,
-    image: Option<(Arc<std::path::PathBuf>, Arc<image::DynamicImage>)>,
+    image: Option<(Arc<std::path::PathBuf>, CanvasData)>,
 }
 
 impl AppState {
@@ -53,7 +53,8 @@ impl AppState {
     }
 
     fn do_open_image(&mut self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-        self.image = Some((Arc::new(path.to_owned()), Arc::new(image::open(path)?)));
+        self.image =
+            Some((Arc::new(path.to_owned()), CanvasData::new(Arc::new(image::open(path)?))));
         Ok(())
     }
 
@@ -61,7 +62,10 @@ impl AppState {
         let img = get_image_from_clipboard()?
             .ok_or_else(|| "Clipboard is empty / non-image".to_string())?;
 
-        self.image = Some((Arc::new(std::path::Path::new("Untitled").into()), Arc::new(img)));
+        self.image = Some((
+            Arc::new(std::path::Path::new("Untitled").into()),
+            CanvasData::new(Arc::new(img)),
+        ));
         Ok(())
     }
 
@@ -69,9 +73,9 @@ impl AppState {
         &mut self,
         path: &std::path::Path,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (_, img) = self.image.take().ok_or_else(|| "No image was found.")?;
-        img.save(path)?;
-        self.image = Some((Arc::new(path.to_path_buf()), img));
+        let (_, canvas) = self.image.take().ok_or_else(|| "No image was found.")?;
+        let canvas = CanvasData::new(canvas.save(path)?);
+        self.image = Some((Arc::new(path.to_path_buf()), canvas));
         Ok(())
     }
 
