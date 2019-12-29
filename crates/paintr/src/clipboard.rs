@@ -29,8 +29,16 @@ impl From<image::ImageError> for ClipboardError {
 #[cfg(target_os = "windows")]
 pub use windows::get_image_from_clipboard;
 
+#[cfg(target_os = "windows")]
+pub use windows::put_image_to_clipboard;
+
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn get_image_from_clipboard() -> Result<Option<image::DynamicImage>, ClipboardError> {
+    unimplemented!();
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+pub fn put_image_to_clipboard(_img: &image::DynamicImage) -> Result<(), ClipboardError> {
     unimplemented!();
 }
 
@@ -38,7 +46,7 @@ pub fn get_image_from_clipboard() -> Result<Option<image::DynamicImage>, Clipboa
 mod windows {
     use super::ClipboardError;
     use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-    use druid::Application;
+    use druid::{Application, ClipboardFormat};
     use std::io::Cursor;
     use std::io::Write;
 
@@ -57,8 +65,40 @@ mod windows {
 
         let mut bmp_buf = compute_bmp_header(&data)?;
         bmp_buf.append(&mut data);
-
         Ok(Some(image::load(Cursor::new(bmp_buf), image::ImageFormat::BMP)?))
+    }
+
+    pub fn put_image_to_clipboard(img: &image::DynamicImage) -> Result<(), ClipboardError> {
+        let mut clipboard = Application::clipboard();
+        let mut data = vec![];
+        img.write_to(&mut data, image::ImageFormat::BMP)?;
+
+        data.drain(0..FILE_HEADER_SIZE as usize);
+        let data = upgrade_bmp_header(&mut data)?;
+
+        let fmt = ClipboardFormat::new("CF_DIBV5", data);
+        clipboard.put_formats(&[fmt]);
+
+        Ok(())
+    }
+
+    fn upgrade_bmp_header(data: &mut Vec<u8>) -> Result<Vec<u8>, std::io::Error> {
+        let size = Cursor::new(&data).read_u32::<LittleEndian>()?;
+        assert_eq!(size, 108);
+        let mut remain = data.split_off(size as usize);
+
+        let mut buf = std::io::BufWriter::new(Vec::new());
+        buf.write_u32::<LittleEndian>(size + 16)?;
+        buf.write(&data[4..])?;
+        buf.write_u32::<LittleEndian>(0)?;
+        buf.write_u32::<LittleEndian>(0)?;
+        buf.write_u32::<LittleEndian>(0)?;
+        buf.write_u32::<LittleEndian>(0)?;
+
+        let mut data = buf.into_inner()?;
+        data.append(&mut remain);
+
+        Ok(data)
     }
 
     // BITMAPV5HEADER
@@ -73,10 +113,8 @@ mod windows {
     // LONG         bV5YPelsPerMeter;   4   OFFSET 28
     // DWORD        bV5ClrUsed;         4   OFFSET 32
 
-    const BI_BITFIELDS: u32 = 0x0003;
     const V5_COMPRESSION_OFFSET: u64 = 16;
     const V5_CLR_USED_OFFSET: u64 = 32;
-    const BIT_MASK_SIZE: u32 = 12;
     const FILE_HEADER_SIZE: u32 = 14;
 
     // https://itnext.io/bits-to-bitmaps-a-simple-walkthrough-of-bmp-image-format-765dc6857393
@@ -85,18 +123,12 @@ mod windows {
         let dib_header_size = cursor.read_u32::<LittleEndian>()?;
 
         cursor.set_position(V5_COMPRESSION_OFFSET);
-        let v5_compession = cursor.read_u32::<LittleEndian>()?;
-
         // FIXME: compute correct color table size
         cursor.set_position(V5_CLR_USED_OFFSET);
         let color_count = cursor.read_u32::<LittleEndian>()?;
         let sizeof_rgba = 4;
 
-        let mut pixel_data_offset = dib_header_size + color_count * sizeof_rgba;
-        if v5_compession == BI_BITFIELDS {
-            pixel_data_offset += BIT_MASK_SIZE; //bit masks follow the header
-        }
-
+        let pixel_data_offset = dib_header_size + color_count * sizeof_rgba;
         let mut buf = std::io::BufWriter::new(Vec::new());
         // File Type
         buf.write(b"BM")?;

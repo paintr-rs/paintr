@@ -3,7 +3,7 @@ use crate::AppState;
 use druid::{KeyCode, MenuDesc, MenuItem, RawMods};
 
 pub(crate) fn make_menu(app: &AppState) -> MenuDesc<AppState> {
-    MenuDesc::empty().append(file_menu(app))
+    MenuDesc::empty().append(file_menu(app)).append(edit_menu(app))
 }
 
 fn file_menu(app: &AppState) -> MenuDesc<AppState> {
@@ -17,6 +17,10 @@ fn file_menu(app: &AppState) -> MenuDesc<AppState> {
         .append(exit())
 }
 
+fn edit_menu(_app: &AppState) -> MenuDesc<AppState> {
+    MenuDesc::new(L!("menu-edit-menu")).append(copy())
+}
+
 macro_rules! register_menu_items {
     ($($name:ident => ($sel:literal, $cmd:expr, $mods:ident, $keycode:ident)),*) => {
         $(
@@ -28,8 +32,12 @@ macro_rules! register_menu_items {
 }
 
 register_menu_items! {
+    // files
     open => ("menu-file-open", commands::file_open_command(), Ctrl, KeyO),
     new => ("menu-file-new", commands::FILE_NEW_ACTION, Ctrl, KeyN),
     save => ("menu-file-save-as", commands::file_save_as_command(), CtrlShift, KeyS),
-    exit => ("menu-file-exit", commands::FILE_EXIT_ACTION, Alt, F4)
+    exit => ("menu-file-exit", commands::FILE_EXIT_ACTION, Alt, F4),
+
+    // edit
+    copy => ("menu-edit-copy", commands::EDIT_COPY_ACTION, Ctrl, KeyC)
 }
