@@ -4,7 +4,7 @@ use druid::{
     theme, AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, Lens, LensExt,
     LocalizedString, Widget, WindowDesc, WindowId,
 };
-use paintr::get_image_from_clipboard;
+use paintr::{get_image_from_clipboard, put_image_to_clipboard};
 
 macro_rules! L {
     ($str:literal) => {
@@ -41,6 +41,8 @@ fn main() {
 
 struct Delegate;
 
+type Error = Box<dyn std::error::Error>;
+
 #[derive(Clone, Data, Lens)]
 struct AppState {
     notifications: Arc<Vec<Notification>>,
@@ -52,13 +54,13 @@ impl AppState {
         Arc::make_mut(&mut self.notifications).push(n);
     }
 
-    fn do_open_image(&mut self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    fn do_open_image(&mut self, path: &std::path::Path) -> Result<(), Error> {
         self.image =
             Some((Arc::new(path.to_owned()), CanvasData::new(Arc::new(image::open(path)?))));
         Ok(())
     }
 
-    fn do_new_image(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    fn do_new_image(&mut self) -> Result<(), Error> {
         let img = get_image_from_clipboard()?
             .ok_or_else(|| "Clipboard is empty / non-image".to_string())?;
 
@@ -69,14 +71,22 @@ impl AppState {
         Ok(())
     }
 
-    fn do_save_as_image(
-        &mut self,
-        path: &std::path::Path,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn do_save_as_image(&mut self, path: &std::path::Path) -> Result<(), Error> {
         let (_, canvas) = self.image.take().ok_or_else(|| "No image was found.")?;
         let canvas = CanvasData::new(canvas.save(path)?);
         self.image = Some((Arc::new(path.to_path_buf()), canvas));
         Ok(())
+    }
+
+    fn do_copy(&mut self) -> Result<bool, Error> {
+        let img = self.image.as_ref().map(|(_, canvas)| canvas.selection()).flatten();
+
+        let img = match img {
+            None => return Ok(false),
+            Some(img) => img,
+        };
+        put_image_to_clipboard(&img)?;
+        Ok(true)
     }
 
     fn image_file_name(&self) -> String {
@@ -100,7 +110,7 @@ impl Delegate {
         data: &mut AppState,
         ctx: &mut DelegateCtx,
         cmd: &druid::Command,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Error> {
         match &cmd.selector {
             &commands::FILE_EXIT_ACTION => {
                 ctx.submit_command(druid::commands::CLOSE_WINDOW.into(), None);
@@ -133,6 +143,12 @@ impl Delegate {
                 data.update_menu(ctx);
             }
 
+            &commands::EDIT_COPY_ACTION => {
+                if data.do_copy()? {
+                    data.show_notification(Notification::info("Copied"));
+                }
+            }
+
             _ => (),
         }
 
@@ -151,7 +167,7 @@ impl AppDelegate<AppState> for Delegate {
         match event {
             Event::Command(ref cmd) => {
                 if let Err(err) = self.handle_command(data, ctx, cmd) {
-                    data.show_notification(Notification::error(err.description()));
+                    data.show_notification(Notification::error(err.to_string()));
                 }
             }
 

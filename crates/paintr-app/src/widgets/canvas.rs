@@ -168,16 +168,21 @@ impl CanvasData {
     }
 
     pub fn save(&self, path: &std::path::Path) -> Result<Arc<DynamicImage>, std::io::Error> {
-        if let Some(selection) = &self.selection {
-            let (x, y) = selection.rect.origin().into();
-            let (w, h) = selection.rect.size().into();
-            let new_img = self.img.view(x as u32, y as u32, w as u32, h as u32).to_image();
-            new_img.save(path)?;
-            Ok(Arc::new(DynamicImage::ImageRgba8(new_img)))
+        if let Some(sel_img) = self.selection() {
+            sel_img.save(path)?;
+            Ok(sel_img)
         } else {
             self.img.save(path)?;
             Ok(self.img.clone())
         }
+    }
+
+    pub fn selection(&self) -> Option<Arc<DynamicImage>> {
+        let selection = self.selection.as_ref()?;
+        let (x, y) = selection.rect.origin().into();
+        let (w, h) = selection.rect.size().into();
+        let new_img = self.img.view(x as u32, y as u32, w as u32, h as u32).to_image();
+        Some(Arc::new(DynamicImage::ImageRgba8(new_img)))
     }
 }
 
