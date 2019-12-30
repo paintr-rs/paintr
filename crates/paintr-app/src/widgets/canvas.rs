@@ -87,10 +87,10 @@ impl Paintable for Selection {
         let stroke_color = Color::rgb8(0xff, 0xff, 0xff);
 
         let mut style = StrokeStyle::new();
-        let dashes = vec![0.0, 0.0, 2.0, 4.0];
+        let dashes = vec![2.0, 2.0];
         style.set_dash(dashes, 0.0);
 
-        paint_ctx.stroke_styled(path, &stroke_color, 2.0, &style);
+        paint_ctx.stroke_styled(path, &stroke_color, 1.0, &style);
     }
 
     fn paint_size(&self) -> Size {
