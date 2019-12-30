@@ -1,10 +1,9 @@
 //! Paint helper trait
 //!
 //! A paint trait which let overriding paint behaivor easier
-
-use druid::kurbo::{Point, Rect, Size};
 use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, UpdateCtx, Widget, WidgetPod,
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, Point, Rect, Size, UpdateCtx,
+    Widget, WidgetPod,
 };
 
 pub struct Paint<T: Data> {

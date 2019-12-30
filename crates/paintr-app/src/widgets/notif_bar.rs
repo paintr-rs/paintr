@@ -2,13 +2,11 @@
 //!
 //! A widget represent a message box
 
-use druid::kurbo::{Point, Rect, Size};
-use druid::piet::RenderContext;
-use druid::piet::{Color, UnitPoint};
 use druid::widget::{Align, Label, List, WidgetExt};
 use druid::{
     lens::{self, LensExt},
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, UpdateCtx, Widget, WidgetPod,
+    BoxConstraints, Color, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, Point, Rect,
+    RenderContext, Size, UnitPoint, UpdateCtx, Widget, WidgetPod,
 };
 
 use super::painter::Painter;

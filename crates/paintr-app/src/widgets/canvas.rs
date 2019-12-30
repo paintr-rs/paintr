@@ -1,7 +1,7 @@
-use druid::kurbo::{Point, Rect, Size};
-use druid::piet::{Color, ImageFormat, InterpolationMode, RenderContext, StrokeStyle};
+use druid::piet::{ImageFormat, InterpolationMode, StrokeStyle};
 use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, MouseButton, PaintCtx, UpdateCtx, Widget,
+    BoxConstraints, Color, Data, Env, Event, EventCtx, LayoutCtx, MouseButton, PaintCtx, Point,
+    Rect, RenderContext, Size, UpdateCtx, Widget,
 };
 
 use image::{DynamicImage, GenericImageView, RgbaImage};

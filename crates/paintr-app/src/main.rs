@@ -1,8 +1,7 @@
-use druid::piet::Color;
 use druid::widget::{Align, Either, Label, Padding, Scroll, WidgetExt};
 use druid::{
-    theme, AppDelegate, AppLauncher, Application, Data, DelegateCtx, Env, Event, Lens, LensExt,
-    LocalizedString, Widget, WindowDesc, WindowId,
+    theme, AppDelegate, AppLauncher, Application, Color, Data, DelegateCtx, Env, Event, Lens,
+    LensExt, LocalizedString, Widget, WindowDesc, WindowId,
 };
 use paintr::{get_image_from_clipboard, put_image_to_clipboard};
 
