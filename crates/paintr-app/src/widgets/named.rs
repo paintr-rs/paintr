@@ -2,11 +2,10 @@
 //!
 //! A widget represent a named window
 
-use druid::kurbo::{Point, Rect, Size};
-use druid::piet::{Color, RenderContext};
 use druid::widget::{Label, LabelText, WidgetExt};
 use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, UpdateCtx, Widget, WidgetPod,
+    BoxConstraints, Color, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, Point, Rect,
+    RenderContext, Size, UpdateCtx, Widget, WidgetPod,
 };
 
 pub struct Named<T: Data> {
