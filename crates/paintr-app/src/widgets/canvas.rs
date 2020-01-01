@@ -3,9 +3,8 @@ use druid::{
     Size, UpdateCtx, Widget,
 };
 
-use image::{DynamicImage, RgbaImage};
-use paintr::{Paintable, Selection};
-use std::sync::Arc;
+use image::RgbaImage;
+use paintr::{CanvasData, Paintable, Selection};
 
 #[derive(Debug)]
 enum Plane {
@@ -51,7 +50,6 @@ struct PlaneIndex(usize);
 #[derive(Debug)]
 pub struct Canvas {
     planes: Vec<Plane>,
-
     down: Option<Point>,
     has_selection: Option<PlaneIndex>,
 }
@@ -71,16 +69,7 @@ impl Canvas {
         });
     }
 
-    fn update_selection(&mut self, data: &mut CanvasData, pt0: Point, pt1: Point) {
-        let rect = Rect::from_points(pt0, pt1);
-        if rect.size() == Size::ZERO {
-            data.selection = None;
-        } else {
-            data.selection = Some(Selection::rect(rect));
-        }
-    }
-
-    fn set_selection(&mut self, selection: Option<Selection>) {
+    fn update_selection(&mut self, selection: Option<Selection>) {
         let selection = match selection {
             None => {
                 if let Some(idx) = self.has_selection.take() {
@@ -103,37 +92,6 @@ impl Canvas {
     }
 }
 
-#[derive(Data, Clone)]
-pub struct CanvasData {
-    img: Arc<DynamicImage>,
-    selection: Option<Selection>,
-}
-
-impl CanvasData {
-    pub fn new(img: Arc<DynamicImage>) -> CanvasData {
-        CanvasData { img, selection: None }
-    }
-
-    pub fn save(&self, path: &std::path::Path) -> Result<Arc<DynamicImage>, std::io::Error> {
-        if let Some(sel) = self.selection() {
-            let sel_img = self.from_selection(sel);
-            sel_img.save(path)?;
-            Ok(sel_img)
-        } else {
-            self.img.save(path)?;
-            Ok(self.img.clone())
-        }
-    }
-
-    pub fn selection(&self) -> Option<&Selection> {
-        self.selection.as_ref()
-    }
-
-    pub fn from_selection(&self, selection: &Selection) -> Arc<DynamicImage> {
-        selection.image(&self.img)
-    }
-}
-
 type DataType = Option<CanvasData>;
 
 impl Widget<DataType> for Canvas {
@@ -147,17 +105,16 @@ impl Widget<DataType> for Canvas {
             Event::MouseMoved(me) => {
                 if let Some(down) = self.down {
                     if let Some(data) = data {
-                        self.update_selection(data, down, me.pos);
+                        data.select_rect(Rect::from_points(down, me.pos));
                         ctx.invalidate();
                     }
                 }
             }
-
             Event::MouseUp(me) => {
                 if me.button == MouseButton::Left {
                     if let Some(down) = self.down.take() {
                         if let Some(data) = data {
-                            self.update_selection(data, down, me.pos);
+                            data.select_rect(Rect::from_points(down, me.pos));
                             ctx.invalidate();
                         }
                     }
@@ -180,26 +137,23 @@ impl Widget<DataType> for Canvas {
         };
 
         if changed {
-            let old_img = old_data.map(|it| it.as_ref().map(|it| &it.img)).flatten();
-            let old_selection = old_data.map(|it| it.as_ref().map(|it| &it.selection)).flatten();
+            let old_img = old_data.map(|it| it.as_ref().map(|it| it.image())).flatten();
+            let old_selection = old_data.map(|it| it.as_ref().map(|it| it.selection())).flatten();
 
-            let img_changed = !old_img.same(&data.as_ref().map(|it| &it.img));
-            let selection_changed = !old_selection.same(&data.as_ref().map(|it| &it.selection));
+            let img_changed = !old_img.same(&data.as_ref().map(|it| it.image()));
+            let selection_changed = !old_selection.same(&data.as_ref().map(|it| it.selection()));
 
             if img_changed {
                 self.planes.clear();
                 self.has_selection = None;
                 if let Some(canvas) = data.as_ref() {
-                    self.planes.push(canvas.img.to_rgba().into());
+                    self.planes.push(canvas.image().to_rgba().into());
                 }
             }
 
             if selection_changed || img_changed {
-                if let Some(canvas) = data.as_ref() {
-                    self.set_selection(canvas.selection.clone());
-                } else {
-                    self.set_selection(None);
-                }
+                let selection = data.as_ref().and_then(|c| c.selection().cloned());
+                self.update_selection(selection);
             }
         }
     }
