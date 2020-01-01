@@ -1,7 +1,7 @@
-use druid::widget::{Align, Either, Label, Padding, Scroll, WidgetExt};
+use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, WidgetExt};
 use druid::{
     theme, AppDelegate, AppLauncher, Application, Color, Data, DelegateCtx, Env, Event, Lens,
-    LensExt, LocalizedString, Widget, WindowDesc, WindowId,
+    LensExt, LocalizedString, UnitPoint, Widget, WindowDesc, WindowId,
 };
 use paintr::{get_image_from_clipboard, put_image_to_clipboard};
 
@@ -78,12 +78,15 @@ impl AppState {
     }
 
     fn do_copy(&mut self) -> Result<bool, Error> {
-        let img = self.image.as_ref().map(|(_, canvas)| canvas.selection()).flatten();
+        let img = self
+            .canvas()
+            .and_then(|canvas| canvas.selection().map(|sel| canvas.from_selection(sel)));
 
         let img = match img {
             None => return Ok(false),
             Some(img) => img,
         };
+
         put_image_to_clipboard(&img)?;
         Ok(true)
     }
@@ -100,6 +103,14 @@ impl AppState {
             druid::Command::new(druid::commands::SET_MENU, menu::make_menu(self)),
             None,
         );
+    }
+
+    fn canvas(&self) -> Option<&CanvasData> {
+        self.image.as_ref().map(|(_, canvas)| canvas)
+    }
+
+    fn status(&self) -> Option<String> {
+        Some(self.canvas()?.selection()?.description())
     }
 }
 
@@ -215,5 +226,16 @@ fn ui_builder() -> impl Widget<AppState> {
         )),
     );
 
-    NotificationContainer::new(main_content, AppState::notifications)
+    Flex::column()
+        .with_child(NotificationContainer::new(main_content, AppState::notifications), 1.0)
+        .with_child(
+            Label::new(|data: &AppState, _env: &Env| data.status().unwrap_or_default())
+                .align(UnitPoint::RIGHT)
+                .padding((5.0, 3.0))
+                .background(Color::rgb(0.5, 0.3, 0.5))
+                .env_scope(|env| {
+                    env.set(theme::TEXT_SIZE_NORMAL, 12.0);
+                }),
+            0.0,
+        )
 }
