@@ -3,7 +3,7 @@ use druid::{
     theme, AppDelegate, AppLauncher, Application, Color, Data, DelegateCtx, Env, Event, Lens,
     LensExt, LocalizedString, UnitPoint, Widget, WindowDesc, WindowId,
 };
-use paintr::{get_image_from_clipboard, put_image_to_clipboard};
+use paintr::{get_image_from_clipboard, put_image_to_clipboard, CanvasData};
 
 macro_rules! L {
     ($str:literal) => {
@@ -17,7 +17,7 @@ mod widgets;
 use std::sync::Arc;
 use widgets::{
     notif_bar::{Notification, NotificationContainer},
-    Canvas, CanvasData, Named,
+    Canvas, Named,
 };
 
 fn main() {
@@ -80,7 +80,7 @@ impl AppState {
     fn do_copy(&mut self) -> Result<bool, Error> {
         let img = self
             .canvas()
-            .and_then(|canvas| canvas.selection().map(|sel| canvas.from_selection(sel)));
+            .and_then(|canvas| canvas.selection().map(|sel| sel.image(canvas.image())));
 
         let img = match img {
             None => return Ok(false),
