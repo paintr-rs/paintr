@@ -1,10 +1,10 @@
-use druid::piet::{ImageFormat, InterpolationMode, StrokeStyle};
 use druid::{
-    BoxConstraints, Color, Data, Env, Event, EventCtx, LayoutCtx, MouseButton, PaintCtx, Point,
-    Rect, RenderContext, Size, UpdateCtx, Widget,
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, MouseButton, PaintCtx, Point, Rect,
+    Size, UpdateCtx, Widget,
 };
 
-use image::{DynamicImage, GenericImageView, RgbaImage};
+use image::{DynamicImage, RgbaImage};
+use paintr::{Paintable, Selection};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -29,30 +29,6 @@ impl_from! {
     Plane : [RgbaImage => Image, Selection => Selection]
 }
 
-pub trait Paintable: std::fmt::Debug {
-    fn paint(&self, paint_ctx: &mut PaintCtx);
-    fn paint_size(&self) -> Size;
-}
-
-impl Paintable for RgbaImage {
-    fn paint(&self, paint_ctx: &mut PaintCtx) {
-        let size = (self.width() as usize, self.height() as usize);
-
-        // FIXME: Draw image only in paint_ctx.region
-        let image = paint_ctx.make_image(size.0, size.1, self, ImageFormat::RgbaSeparate).unwrap();
-        // The image is automatically scaled to fit the rect you pass to draw_image
-        paint_ctx.draw_image(
-            &image,
-            Rect::from_origin_size(Point::ORIGIN, self.paint_size()),
-            InterpolationMode::NearestNeighbor,
-        );
-    }
-
-    fn paint_size(&self) -> Size {
-        (self.width() as f64, self.height() as f64).into()
-    }
-}
-
 impl Plane {
     fn paint(&self, paint_ctx: &mut PaintCtx) {
         match self {
@@ -66,35 +42,6 @@ impl Plane {
             Plane::Image(it) => it.paint_size(),
             Plane::Selection(it) => it.paint_size(),
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct Selection {
-    rect: Rect,
-}
-
-impl Data for Selection {
-    fn same(&self, other: &Self) -> bool {
-        self.rect.size() == other.rect.size() && self.rect.origin() == self.rect.origin()
-    }
-}
-
-impl Paintable for Selection {
-    fn paint(&self, paint_ctx: &mut PaintCtx) {
-        let path = self.rect;
-        // Create a color
-        let stroke_color = Color::rgb8(0xff, 0xff, 0xff);
-
-        let mut style = StrokeStyle::new();
-        let dashes = vec![2.0, 2.0];
-        style.set_dash(dashes, 0.0);
-
-        paint_ctx.stroke_styled(path, &stroke_color, 1.0, &style);
-    }
-
-    fn paint_size(&self) -> Size {
-        self.rect.size()
     }
 }
 
@@ -129,7 +76,7 @@ impl Canvas {
         if rect.size() == Size::ZERO {
             data.selection = None;
         } else {
-            data.selection = Some(Selection { rect });
+            data.selection = Some(Selection::rect(rect));
         }
     }
 
@@ -168,7 +115,8 @@ impl CanvasData {
     }
 
     pub fn save(&self, path: &std::path::Path) -> Result<Arc<DynamicImage>, std::io::Error> {
-        if let Some(sel_img) = self.selection() {
+        if let Some(sel) = self.selection() {
+            let sel_img = self.from_selection(sel);
             sel_img.save(path)?;
             Ok(sel_img)
         } else {
@@ -177,12 +125,12 @@ impl CanvasData {
         }
     }
 
-    pub fn selection(&self) -> Option<Arc<DynamicImage>> {
-        let selection = self.selection.as_ref()?;
-        let (x, y) = selection.rect.origin().into();
-        let (w, h) = selection.rect.size().into();
-        let new_img = self.img.view(x as u32, y as u32, w as u32, h as u32).to_image();
-        Some(Arc::new(DynamicImage::ImageRgba8(new_img)))
+    pub fn selection(&self) -> Option<&Selection> {
+        self.selection.as_ref()
+    }
+
+    pub fn from_selection(&self, selection: &Selection) -> Arc<DynamicImage> {
+        selection.image(&self.img)
     }
 }
 
