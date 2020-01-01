@@ -1,4 +1,4 @@
-use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, WidgetExt};
+use druid::widget::{Align, Button, Container, Either, Flex, Label, Padding, Scroll, WidgetExt};
 use druid::{
     theme, AppDelegate, AppLauncher, Application, Color, Data, DelegateCtx, Env, Event, Lens,
     LensExt, LocalizedString, UnitPoint, Widget, WindowDesc, WindowId,
@@ -17,11 +17,16 @@ mod widgets;
 use std::sync::Arc;
 use widgets::{
     notif_bar::{Notification, NotificationContainer},
-    Canvas, Named,
+    Canvas, ModalContainer, Named,
 };
 
+#[derive(Data, Eq, PartialEq, Clone)]
+struct ModalData {
+    title: String,
+}
+
 fn main() {
-    let app_state = AppState { notifications: Arc::new(Vec::new()), image: None };
+    let app_state = AppState { notifications: Arc::new(Vec::new()), image: None, modal: None };
 
     let main_window = WindowDesc::new(ui_builder)
         .title(L!("paint-app-name"))
@@ -46,6 +51,7 @@ type Error = Box<dyn std::error::Error>;
 struct AppState {
     notifications: Arc<Vec<Notification>>,
     image: Option<(Arc<std::path::PathBuf>, CanvasData)>,
+    modal: Option<ModalData>,
 }
 
 impl AppState {
@@ -152,11 +158,14 @@ impl Delegate {
                 )));
                 data.update_menu(ctx);
             }
-
             &commands::EDIT_COPY_ACTION => {
                 if data.do_copy()? {
                     data.show_notification(Notification::info("Copied"));
                 }
+            }
+            &commands::ABOUT_TEST_ACTION => {
+                data.modal = Some(ModalData { title: "New File".to_string() });
+                data.update_menu(ctx);
             }
 
             _ => (),
@@ -226,16 +235,29 @@ fn ui_builder() -> impl Widget<AppState> {
         )),
     );
 
-    Flex::column()
-        .with_child(NotificationContainer::new(main_content, AppState::notifications), 1.0)
-        .with_child(
-            Label::new(|data: &AppState, _env: &Env| data.status().unwrap_or_default())
-                .align(UnitPoint::RIGHT)
-                .padding((5.0, 3.0))
-                .background(Color::rgb(0.5, 0.3, 0.5))
-                .env_scope(|env| {
-                    env.set(theme::TEXT_SIZE_NORMAL, 12.0);
-                }),
-            0.0,
-        )
+    let container = ModalContainer::new(
+        NotificationContainer::new(main_content, AppState::notifications),
+        |s, _| {
+            let s = s.as_ref()?.title.clone();
+            let w = Container::new(Button::new(s, |_, data, _| {
+                *data = None;
+            }))
+            .fix_width(100.0)
+            .fix_height(100.0)
+            .center();
+            Some(w)
+        },
+        AppState::modal,
+    );
+
+    Flex::column().with_child(container, 1.0).with_child(
+        Label::new(|data: &AppState, _env: &Env| data.status().unwrap_or_default())
+            .align(UnitPoint::RIGHT)
+            .padding((5.0, 3.0))
+            .background(Color::rgb(0.5, 0.3, 0.5))
+            .env_scope(|env| {
+                env.set(theme::TEXT_SIZE_NORMAL, 12.0);
+            }),
+        0.0,
+    )
 }
