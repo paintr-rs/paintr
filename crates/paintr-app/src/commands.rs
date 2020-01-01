@@ -6,6 +6,8 @@ pub(crate) const FILE_NEW_ACTION: Selector = Selector::new("menu-new-action");
 
 pub(crate) const EDIT_COPY_ACTION: Selector = Selector::new("edit-copy-action");
 
+pub(crate) const ABOUT_TEST_ACTION: Selector = Selector::new("about-test-action");
+
 pub(crate) fn file_open_command() -> Command {
     Command::new(
         druid::commands::SHOW_OPEN_PANEL,

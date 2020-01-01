@@ -3,7 +3,7 @@ use crate::AppState;
 use druid::{KeyCode, MenuDesc, MenuItem, RawMods};
 
 pub(crate) fn make_menu(app: &AppState) -> MenuDesc<AppState> {
-    MenuDesc::empty().append(file_menu(app)).append(edit_menu(app))
+    MenuDesc::empty().append(file_menu(app)).append(edit_menu(app)).append(about_menu(app))
 }
 
 fn file_menu(app: &AppState) -> MenuDesc<AppState> {
@@ -21,12 +21,16 @@ fn edit_menu(_app: &AppState) -> MenuDesc<AppState> {
     MenuDesc::new(L!("menu-edit-menu")).append(copy())
 }
 
+fn about_menu(_app: &AppState) -> MenuDesc<AppState> {
+    MenuDesc::new(L!("menu-about-menu")).append(about())
+}
+
 macro_rules! register_menu_items {
-    ($($name:ident => ($sel:literal, $cmd:expr, $mods:ident, $keycode:ident)),*) => {
+    ($($name:ident => ($sel:literal, $cmd:expr $(, $mods:ident, $keycode:ident)? )),*) => {
         $(
         fn $name() -> MenuItem<AppState> {
             MenuItem::new(L!($sel), $cmd)
-                .hotkey(RawMods::$mods, KeyCode::$keycode)
+                $( .hotkey(RawMods::$mods, KeyCode::$keycode) )?
         })*
     }
 }
@@ -39,5 +43,8 @@ register_menu_items! {
     exit => ("menu-file-exit", commands::FILE_EXIT_ACTION, Alt, F4),
 
     // edit
-    copy => ("menu-edit-copy", commands::EDIT_COPY_ACTION, Ctrl, KeyC)
+    copy => ("menu-edit-copy", commands::EDIT_COPY_ACTION, Ctrl, KeyC),
+
+    // about
+    about => ("menu-about-test", commands::ABOUT_TEST_ACTION)
 }
