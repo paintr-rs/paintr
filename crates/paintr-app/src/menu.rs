@@ -9,6 +9,7 @@ pub(crate) fn make_menu(app: &AppState) -> MenuDesc<AppState> {
 fn file_menu(app: &AppState) -> MenuDesc<AppState> {
     MenuDesc::new(L!("menu-file-menu"))
         .append(new())
+        .append(new_from_clipboard())
         .append_separator()
         .append(open())
         .append_separator()
@@ -39,6 +40,7 @@ register_menu_items! {
     // files
     open => ("menu-file-open", commands::file_open_command(), Ctrl, KeyO),
     new => ("menu-file-new", commands::FILE_NEW_ACTION, Ctrl, KeyN),
+    new_from_clipboard => ("menu-file-new-clipboard", commands::FILE_NEW_CLIPBOARD_ACTION),
     save => ("menu-file-save-as", commands::file_save_as_command(), CtrlShift, KeyS),
     exit => ("menu-file-exit", commands::FILE_EXIT_ACTION, Alt, F4),
 

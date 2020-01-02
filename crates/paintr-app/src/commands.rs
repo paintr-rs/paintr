@@ -3,10 +3,13 @@ const IMAGE_FILE_TYPE: FileSpec = FileSpec::new("Images", &["bmp", "png", "gif",
 
 pub(crate) const FILE_EXIT_ACTION: Selector = Selector::new("menu-exit-action");
 pub(crate) const FILE_NEW_ACTION: Selector = Selector::new("menu-new-action");
+pub(crate) const FILE_NEW_CLIPBOARD_ACTION: Selector = Selector::new("menu-new-clipboard-action");
 
 pub(crate) const EDIT_COPY_ACTION: Selector = Selector::new("edit-copy-action");
 
 pub(crate) const ABOUT_TEST_ACTION: Selector = Selector::new("about-test-action");
+
+pub(crate) const NEW_IMAGE_ACTION: Selector = Selector::new("new-image-action");
 
 pub(crate) fn file_open_command() -> Command {
     Command::new(

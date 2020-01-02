@@ -1,5 +1,6 @@
 menu-file-menu = File
 menu-file-new = New File
+menu-file-new-clipboard = New File From Clipboard
 menu-file-open = Open File...
 menu-file-save-as = Save As...
 menu-file-exit = Exit

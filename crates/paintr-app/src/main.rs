@@ -1,4 +1,4 @@
-use druid::widget::{Align, Button, Container, Either, Flex, Label, Padding, Scroll, WidgetExt};
+use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, WidgetExt};
 use druid::{
     theme, AppDelegate, AppLauncher, Application, Color, Data, DelegateCtx, Env, Event, Lens,
     LensExt, LocalizedString, UnitPoint, Widget, WindowDesc, WindowId,
@@ -12,18 +12,16 @@ macro_rules! L {
 }
 
 mod commands;
+mod dialogs;
 mod menu;
 mod widgets;
+
+use dialogs::DialogData;
 use std::sync::Arc;
 use widgets::{
     notif_bar::{Notification, NotificationContainer},
     Canvas, ModalContainer, Named,
 };
-
-#[derive(Data, Eq, PartialEq, Clone)]
-struct ModalData {
-    title: String,
-}
 
 fn main() {
     let app_state = AppState { notifications: Arc::new(Vec::new()), image: None, modal: None };
@@ -51,7 +49,7 @@ type Error = Box<dyn std::error::Error>;
 struct AppState {
     notifications: Arc<Vec<Notification>>,
     image: Option<(Arc<std::path::PathBuf>, CanvasData)>,
-    modal: Option<ModalData>,
+    modal: Option<DialogData>,
 }
 
 impl AppState {
@@ -65,13 +63,30 @@ impl AppState {
         Ok(())
     }
 
-    fn do_new_image(&mut self) -> Result<(), Error> {
+    fn do_new_image_from_clipboard(&mut self) -> Result<(), Error> {
         let img = get_image_from_clipboard()?
             .ok_or_else(|| "Clipboard is empty / non-image".to_string())?;
 
         self.image = Some((
             Arc::new(std::path::Path::new("Untitled").into()),
             CanvasData::new(Arc::new(img)),
+        ));
+        Ok(())
+    }
+
+    fn do_new_image(&mut self, info: &dialogs::NewFileSettings) -> Result<(), Error> {
+        let (w, h) = (
+            info.width.expect("It must be valid after dialog closed."),
+            info.height.expect("It must be valid after dialog closed."),
+        );
+
+        let img = image::ImageBuffer::from_fn(w, h, |_, _| {
+            image::Rgba([0xff_u8, 0xff_u8, 0xff_u8, 0xff_u8])
+        });
+
+        self.image = Some((
+            Arc::new(std::path::Path::new("Untitled").into()),
+            CanvasData::new(Arc::new(image::DynamicImage::ImageRgba8(img))),
         ));
         Ok(())
     }
@@ -132,7 +147,11 @@ impl Delegate {
                 ctx.submit_command(druid::commands::CLOSE_WINDOW.into(), None);
             }
             &commands::FILE_NEW_ACTION => {
-                data.do_new_image()?;
+                data.modal = Some(DialogData::new_file_settings());
+                data.update_menu(ctx);
+            }
+            &commands::FILE_NEW_CLIPBOARD_ACTION => {
+                data.do_new_image_from_clipboard()?;
                 data.show_notification(Notification::info("New file created"));
                 data.update_menu(ctx);
             }
@@ -163,11 +182,15 @@ impl Delegate {
                     data.show_notification(Notification::info("Copied"));
                 }
             }
-            &commands::ABOUT_TEST_ACTION => {
-                data.modal = Some(ModalData { title: "New File".to_string() });
+            &commands::NEW_IMAGE_ACTION => {
+                let info = cmd
+                    .get_object::<dialogs::NewFileSettings>()
+                    .ok_or_else(|| "api violation".to_string())?;
+
+                data.do_new_image(info)?;
+                data.show_notification(Notification::info("New file created"));
                 data.update_menu(ctx);
             }
-
             _ => (),
         }
 
@@ -237,16 +260,7 @@ fn ui_builder() -> impl Widget<AppState> {
 
     let container = ModalContainer::new(
         NotificationContainer::new(main_content, AppState::notifications),
-        |s, _| {
-            let s = s.as_ref()?.title.clone();
-            let w = Container::new(Button::new(s, |_, data, _| {
-                *data = None;
-            }))
-            .fix_width(100.0)
-            .fix_height(100.0)
-            .center();
-            Some(w)
-        },
+        |modal, _| modal.widget(),
         AppState::modal,
     );
 
