@@ -255,7 +255,7 @@ fn ui_builder() -> impl Widget<AppState> {
             .align(UnitPoint::RIGHT)
             .padding((5.0, 3.0))
             .background(Color::rgb(0.5, 0.3, 0.5))
-            .env_scope(|env| {
+            .env_scope(|env, _| {
                 env.set(theme::TEXT_SIZE_NORMAL, 12.0);
             }),
         0.0,
