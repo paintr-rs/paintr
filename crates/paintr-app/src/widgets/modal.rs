@@ -1,6 +1,6 @@
-//! Toast Box
+//! Modal and ModalContainer
 //!
-//! A widget represent a message box
+//! A widget represent modal widget
 
 use druid::{
     lens::{self, LensExt},
@@ -40,16 +40,13 @@ impl<T: Data, M: Data + Modal + 'static, L: lens::Lens<T, Option<M>>> Widget<T>
         // if we have modal, block all other event
         if let Some(modal) = &mut self.modal {
             self.lens.with_mut(data, |data| {
-                let mut is_closed = None;
+                if let Some(modal_data) = data {
+                    modal.event(ctx, event, modal_data, env);
 
-                if let Some(data) = data {
-                    modal.event(ctx, event, data, env);
-                    is_closed = data.is_closed();
-                }
-
-                if let Some(cmd) = is_closed {
-                    ctx.submit_command(cmd, ctx.window_id());
-                    *data = None;
+                    if let Some(cmd) = modal_data.is_closed() {
+                        ctx.submit_command(cmd, ctx.window_id());
+                        *data = None;
+                    }
                 }
             });
 
