@@ -59,7 +59,7 @@ impl Paintable for Selection {
         paint_ctx.stroke_styled(self.path(), &stroke_color, 1.0, &style);
     }
 
-    fn paint_size(&self) -> Size {
-        self.size()
+    fn paint_size(&self) -> Option<Size> {
+        Some(self.size())
     }
 }
