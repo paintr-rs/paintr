@@ -3,7 +3,9 @@ use druid::{
     theme, AppDelegate, AppLauncher, Application, Color, Data, DelegateCtx, Env, Event, Lens,
     LensExt, LocalizedString, UnitPoint, Widget, WindowDesc, WindowId,
 };
-use paintr::{get_image_from_clipboard, put_image_to_clipboard, CanvasData};
+use paintr::{
+    get_image_from_clipboard, put_image_to_clipboard, CanvasData, Edit, Paste, UndoHistory,
+};
 
 macro_rules! L {
     ($str:literal) => {
@@ -24,7 +26,12 @@ use widgets::{
 };
 
 fn main() {
-    let app_state = AppState { notifications: Arc::new(Vec::new()), image: None, modal: None };
+    let app_state = AppState {
+        notifications: Arc::new(Vec::new()),
+        image: None,
+        modal: None,
+        history: UndoHistory::new(),
+    };
 
     let main_window = WindowDesc::new(ui_builder)
         .title(L!("paint-app-name"))
@@ -50,6 +57,7 @@ struct AppState {
     notifications: Arc<Vec<Notification>>,
     image: Option<(Arc<std::path::PathBuf>, CanvasData)>,
     modal: Option<DialogData>,
+    history: UndoHistory<CanvasData>,
 }
 
 impl AppState {
@@ -58,8 +66,13 @@ impl AppState {
     }
 
     fn do_open_image(&mut self, path: &std::path::Path) -> Result<(), Error> {
-        self.image =
-            Some((Arc::new(path.to_owned()), CanvasData::new(Arc::new(image::open(path)?))));
+        let img = image::open(path)?;
+        let img = match img {
+            image::DynamicImage::ImageRgba8(_) => img,
+            _ => image::DynamicImage::ImageRgba8(img.to_rgba()),
+        };
+
+        self.image = Some((Arc::new(path.to_owned()), CanvasData::new(Arc::new(img))));
         Ok(())
     }
 
@@ -112,15 +125,47 @@ impl AppState {
         Ok(true)
     }
 
+    fn do_undo(&mut self) -> Option<String> {
+        if self.image.is_none() {
+            return None;
+        }
+        let (old, desc) = self.history.undo()?;
+        let canvas: &mut _ = self.image.as_mut().map(|(_, canvas)| canvas)?;
+        *canvas = old;
+        Some(desc)
+    }
+
+    fn do_edit(&mut self, edit: impl Edit<CanvasData> + 'static) -> bool {
+        if let Some(canvas) = self.canvas_mut() {
+            let old = edit.execute(canvas);
+            self.history.push(Arc::new(edit), old);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn do_redo(&mut self) -> Option<String> {
+        if self.canvas().is_none() {
+            return None;
+        }
+        let edit = self.history.redo()?;
+        let canvas = self.canvas_mut().unwrap();
+        let old = edit.execute(canvas);
+        let desc = edit.description();
+        self.history.push(edit, old);
+        Some(desc)
+    }
+
     fn do_paste(&mut self) -> Result<bool, Error> {
         let img = get_image_from_clipboard()?;
 
-        if let Some((canvas, img)) = self.canvas_mut().and_then(|x| img.map(|y| (x, y))) {
-            canvas.paste(img);
-            Ok(true)
-        } else {
-            Ok(false)
-        }
+        let img = match img {
+            Some(img) => img,
+            None => return Ok(false),
+        };
+
+        Ok(self.do_edit(Paste::new(img)))
     }
 
     fn image_file_name(&self) -> String {
@@ -191,6 +236,16 @@ impl Delegate {
                     data.image_file_name()
                 )));
                 data.update_menu(ctx);
+            }
+            &commands::EDIT_UNDO_ACTION => {
+                if let Some(desc) = data.do_undo() {
+                    data.show_notification(Notification::info(format!("Undo {}", desc)));
+                }
+            }
+            &commands::EDIT_REDO_ACTION => {
+                if let Some(desc) = data.do_redo() {
+                    data.show_notification(Notification::info(format!("Redo {}", desc)));
+                }
             }
             &commands::EDIT_COPY_ACTION => {
                 if data.do_copy()? {

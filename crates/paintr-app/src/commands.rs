@@ -5,6 +5,8 @@ pub(crate) const FILE_EXIT_ACTION: Selector = Selector::new("menu-exit-action");
 pub(crate) const FILE_NEW_ACTION: Selector = Selector::new("menu-new-action");
 pub(crate) const FILE_NEW_CLIPBOARD_ACTION: Selector = Selector::new("menu-new-clipboard-action");
 
+pub(crate) const EDIT_UNDO_ACTION: Selector = Selector::new("edit-undo-action");
+pub(crate) const EDIT_REDO_ACTION: Selector = Selector::new("edit-redo-action");
 pub(crate) const EDIT_COPY_ACTION: Selector = Selector::new("edit-copy-action");
 pub(crate) const EDIT_PASTE_ACTION: Selector = Selector::new("edit-paste-action");
 

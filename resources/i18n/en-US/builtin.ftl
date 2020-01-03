@@ -6,6 +6,8 @@ menu-file-save-as = Save As...
 menu-file-exit = Exit
 
 menu-edit-menu = Edit
+menu-edit-undo = Undo
+menu-edit-redo = Redo
 menu-edit-copy = Copy
 menu-edit-paste = Paste
 
