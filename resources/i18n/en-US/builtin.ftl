@@ -7,6 +7,7 @@ menu-file-exit = Exit
 
 menu-edit-menu = Edit
 menu-edit-copy = Copy
+menu-edit-paste = Paste
 
 menu-about-menu = About
 menu-about-test = Test

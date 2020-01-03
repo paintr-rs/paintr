@@ -9,7 +9,6 @@ use std::sync::Arc;
 // FIXME: Change name to Layer
 #[derive(Data, Clone)]
 pub struct CanvasData {
-    img: Arc<DynamicImage>,
     selection: Option<Selection>,
     planes: Planes,
 }
@@ -18,26 +17,21 @@ impl CanvasData {
     pub fn new(img: Arc<DynamicImage>) -> CanvasData {
         let mut planes = Planes::new();
         planes.push(img.clone());
-        CanvasData { img, selection: None, planes }
+        CanvasData { selection: None, planes }
     }
 
     pub fn save(&self, path: &std::path::Path) -> Result<Arc<DynamicImage>, std::io::Error> {
-        if let Some(sel) = self.selection() {
-            let sel_img = sel.image(&self.img);
-            sel_img.save(path)?;
-            Ok(sel_img)
-        } else {
-            self.img.save(path)?;
-            Ok(self.img.clone())
-        }
+        let img = self.image();
+        img.save(path)?;
+        Ok(img)
     }
 
     pub fn selection(&self) -> Option<&Selection> {
         self.selection.as_ref()
     }
 
-    pub fn image(&self) -> &Arc<DynamicImage> {
-        &self.img
+    pub fn image(&self) -> Arc<DynamicImage> {
+        self.planes.merged().expect("There is at least plane in Canvas")
     }
 
     pub fn select_rect(&mut self, rect: Rect) {
@@ -46,6 +40,10 @@ impl CanvasData {
         } else {
             self.selection = Some(Selection::rect(rect));
         }
+    }
+
+    pub fn paste(&mut self, img: DynamicImage) {
+        self.planes.push(Arc::new(img));
     }
 }
 

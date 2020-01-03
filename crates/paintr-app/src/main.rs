@@ -112,6 +112,17 @@ impl AppState {
         Ok(true)
     }
 
+    fn do_paste(&mut self) -> Result<bool, Error> {
+        let img = get_image_from_clipboard()?;
+
+        if let Some((canvas, img)) = self.canvas_mut().and_then(|x| img.map(|y| (x, y))) {
+            canvas.paste(img);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     fn image_file_name(&self) -> String {
         match &self.image {
             None => "Untitled".into(),
@@ -128,6 +139,10 @@ impl AppState {
 
     fn canvas(&self) -> Option<&CanvasData> {
         self.image.as_ref().map(|(_, canvas)| canvas)
+    }
+
+    fn canvas_mut(&mut self) -> Option<&mut CanvasData> {
+        self.image.as_mut().map(|(_, canvas)| canvas)
     }
 
     fn status(&self) -> Option<String> {
@@ -180,6 +195,11 @@ impl Delegate {
             &commands::EDIT_COPY_ACTION => {
                 if data.do_copy()? {
                     data.show_notification(Notification::info("Copied"));
+                }
+            }
+            &commands::EDIT_PASTE_ACTION => {
+                if data.do_paste()? {
+                    data.show_notification(Notification::info("Pasted"));
                 }
             }
             &commands::NEW_IMAGE_ACTION => {
