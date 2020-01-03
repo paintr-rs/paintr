@@ -19,7 +19,12 @@ fn file_menu(app: &AppState) -> MenuDesc<AppState> {
 }
 
 fn edit_menu(_app: &AppState) -> MenuDesc<AppState> {
-    MenuDesc::new(L!("menu-edit-menu")).append(copy()).append(paste())
+    MenuDesc::new(L!("menu-edit-menu"))
+        .append(undo())
+        .append(redo())
+        .append_separator()
+        .append(copy())
+        .append(paste())
 }
 
 fn about_menu(_app: &AppState) -> MenuDesc<AppState> {
@@ -45,6 +50,8 @@ register_menu_items! {
     exit => ("menu-file-exit", commands::FILE_EXIT_ACTION, Alt, F4),
 
     // edit
+    undo => ("menu-edit-undo", commands::EDIT_UNDO_ACTION, Ctrl, KeyZ),
+    redo => ("menu-edit-redo", commands::EDIT_REDO_ACTION, CtrlShift, KeyZ),
     copy => ("menu-edit-copy", commands::EDIT_COPY_ACTION, Ctrl, KeyC),
     paste => ("menu-edit-paste", commands::EDIT_PASTE_ACTION, Ctrl, KeyV),
 

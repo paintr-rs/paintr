@@ -1,6 +1,7 @@
 use druid::{Data, PaintCtx, Rect, Size};
 use image::DynamicImage;
 
+use crate::edit::Edit;
 use crate::plane::Planes;
 use crate::{Paintable, Selection};
 
@@ -41,10 +42,6 @@ impl CanvasData {
             self.selection = Some(Selection::rect(rect));
         }
     }
-
-    pub fn paste(&mut self, img: DynamicImage) {
-        self.planes.push(Arc::new(img));
-    }
 }
 
 impl Paintable for CanvasData {
@@ -58,5 +55,26 @@ impl Paintable for CanvasData {
 
     fn paint_size(&self) -> Option<Size> {
         self.planes.paint_size()
+    }
+}
+
+pub struct Paste {
+    img: DynamicImage,
+}
+
+impl Paste {
+    pub fn new(img: DynamicImage) -> Paste {
+        Paste { img }
+    }
+}
+
+#[must_use]
+impl Edit<CanvasData> for Paste {
+    fn apply(&self, data: &mut CanvasData) {
+        data.planes.push(Arc::new(self.img.clone()));
+    }
+
+    fn description(&self) -> String {
+        "Paste".to_string()
     }
 }

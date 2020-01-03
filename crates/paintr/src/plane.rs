@@ -117,8 +117,6 @@ impl Planes {
             img.copy_from(plane.image().as_ref(), 0, 0);
         }
 
-        dbg!("merged");
-
         Some(Arc::new(img))
     }
 }
