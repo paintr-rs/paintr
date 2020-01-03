@@ -1,12 +1,11 @@
-use crate::{Paintable, Selection};
+use crate::Paintable;
 use druid::{Data, PaintCtx, Size};
-use image::{DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImage, GenericImageView};
 
 use std::sync::Arc;
 
 pub enum Plane {
     Image(Arc<DynamicImage>),
-    Selection(Selection),
 }
 
 impl std::fmt::Debug for Plane {
@@ -15,7 +14,6 @@ impl std::fmt::Debug for Plane {
             Plane::Image(img) => {
                 ("Image", format!("DynamicImage[{}, {}]", img.width(), img.height()))
             }
-            Plane::Selection(sel) => ("Selection", format!("{:?}", sel)),
         };
 
         write!(f, "Plane {{ {} : {} }}", kind, s)
@@ -35,21 +33,27 @@ macro_rules! impl_from {
 }
 
 impl_from! {
-    Plane : [Arc<DynamicImage> => Image, Selection => Selection]
+    Plane : [Arc<DynamicImage> => Image]
 }
 
 impl Paintable for Plane {
     fn paint(&self, paint_ctx: &mut PaintCtx) {
         match self {
             Plane::Image(it) => it.paint(paint_ctx),
-            Plane::Selection(it) => it.paint(paint_ctx),
         };
     }
 
     fn paint_size(&self) -> Option<Size> {
         match self {
             Plane::Image(it) => it.paint_size(),
-            Plane::Selection(it) => it.paint_size(),
+        }
+    }
+}
+
+impl Plane {
+    fn image(&self) -> Arc<DynamicImage> {
+        match self {
+            Plane::Image(it) => it.clone(),
         }
     }
 }
@@ -96,9 +100,26 @@ impl Planes {
         });
     }
 
-    pub fn push(&mut self, plane: impl Into<Plane>) -> PlaneIndex {
+    pub(crate) fn push(&mut self, plane: impl Into<Plane>) -> PlaneIndex {
         self.planes.push(Arc::new(plane.into()));
         PlaneIndex(self.planes.len() - 1)
+    }
+
+    pub(crate) fn merged(&self) -> Option<Arc<DynamicImage>> {
+        if self.planes.len() == 1 {
+            return Some(self.planes[0].image());
+        }
+
+        let size = self.max_size()?;
+        let mut img = image::DynamicImage::new_rgba8(size.width as u32, size.height as u32);
+
+        for plane in &self.planes {
+            img.copy_from(plane.image().as_ref(), 0, 0);
+        }
+
+        dbg!("merged");
+
+        Some(Arc::new(img))
     }
 }
 

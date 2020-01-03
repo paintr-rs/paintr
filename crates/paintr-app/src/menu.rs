@@ -19,7 +19,7 @@ fn file_menu(app: &AppState) -> MenuDesc<AppState> {
 }
 
 fn edit_menu(_app: &AppState) -> MenuDesc<AppState> {
-    MenuDesc::new(L!("menu-edit-menu")).append(copy())
+    MenuDesc::new(L!("menu-edit-menu")).append(copy()).append(paste())
 }
 
 fn about_menu(_app: &AppState) -> MenuDesc<AppState> {
@@ -46,6 +46,7 @@ register_menu_items! {
 
     // edit
     copy => ("menu-edit-copy", commands::EDIT_COPY_ACTION, Ctrl, KeyC),
+    paste => ("menu-edit-paste", commands::EDIT_PASTE_ACTION, Ctrl, KeyV),
 
     // about
     about => ("menu-about-test", commands::ABOUT_TEST_ACTION)

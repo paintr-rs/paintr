@@ -24,7 +24,7 @@ impl Selection {
         self.rect.size()
     }
 
-    pub fn image(&self, img: &Arc<DynamicImage>) -> Arc<DynamicImage> {
+    pub fn image(&self, img: Arc<DynamicImage>) -> Arc<DynamicImage> {
         let (x, y) = self.rect.origin().into();
         let (w, h) = self.rect.size().into();
         let new_img = img.view(x as u32, y as u32, w as u32, h as u32).to_image();

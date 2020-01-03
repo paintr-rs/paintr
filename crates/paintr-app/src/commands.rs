@@ -6,6 +6,7 @@ pub(crate) const FILE_NEW_ACTION: Selector = Selector::new("menu-new-action");
 pub(crate) const FILE_NEW_CLIPBOARD_ACTION: Selector = Selector::new("menu-new-clipboard-action");
 
 pub(crate) const EDIT_COPY_ACTION: Selector = Selector::new("edit-copy-action");
+pub(crate) const EDIT_PASTE_ACTION: Selector = Selector::new("edit-paste-action");
 
 pub(crate) const ABOUT_TEST_ACTION: Selector = Selector::new("about-test-action");
 
