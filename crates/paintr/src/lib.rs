@@ -2,6 +2,7 @@ mod clipboard;
 
 mod canvas;
 mod paintable;
+mod plane;
 mod selection;
 
 pub use canvas::CanvasData;
