@@ -58,6 +58,7 @@ impl Widget<DataType> for Canvas {
             Event::MouseDown(me) => {
                 if me.button == MouseButton::Left {
                     self.mode = EditMode::from_point(data, me.pos);
+                    ctx.set_active(true);
                 }
             }
             Event::MouseMoved(me) => {
@@ -74,6 +75,7 @@ impl Widget<DataType> for Canvas {
                             ctx.invalidate();
                         }
                     }
+                    ctx.set_active(false);
                 }
             }
             _ => (),
