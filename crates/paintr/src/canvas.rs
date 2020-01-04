@@ -1,5 +1,4 @@
 use druid::{Data, PaintCtx, Size};
-use image::DynamicImage;
 
 use crate::edit::{Edit, EditDesc};
 use crate::plane::Planes;
@@ -16,9 +15,9 @@ pub struct CanvasData {
 }
 
 impl CanvasData {
-    pub fn new(path: impl Into<std::path::PathBuf>, img: Arc<DynamicImage>) -> CanvasData {
+    pub fn new(path: impl Into<std::path::PathBuf>, img: image::RgbaImage) -> CanvasData {
         let mut planes = Planes::new();
-        planes.push(img.clone());
+        planes.push(Arc::new(image::ImageRgba8(img)));
         CanvasData { selection: None, planes, path: Arc::new(path.into()) }
     }
 
@@ -26,17 +25,18 @@ impl CanvasData {
         self.path.as_ref()
     }
 
-    pub fn save(&self, path: &std::path::Path) -> Result<Arc<DynamicImage>, std::io::Error> {
+    pub fn save(&mut self, path: &std::path::Path) -> Result<(), std::io::Error> {
         let img = self.image();
         img.save(path)?;
-        Ok(img)
+        self.path = Arc::new(path.into());
+        Ok(())
     }
 
     pub fn selection(&self) -> Option<&Selection> {
         self.selection.as_ref()
     }
 
-    pub fn image(&self) -> Arc<DynamicImage> {
+    pub fn image(&self) -> Arc<image::DynamicImage> {
         self.planes.merged().expect("There is at least plane in Canvas")
     }
 
@@ -65,12 +65,12 @@ impl Paintable for CanvasData {
 }
 
 pub struct Paste {
-    img: DynamicImage,
+    img: image::DynamicImage,
 }
 
 impl Paste {
-    pub fn new(img: DynamicImage) -> Paste {
-        Paste { img }
+    pub fn new(img: image::RgbaImage) -> Paste {
+        Paste { img: image::DynamicImage::ImageRgba8(img) }
     }
 }
 

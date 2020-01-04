@@ -1,13 +1,3 @@
-use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, WidgetExt};
-use druid::{
-    theme, AppDelegate, AppLauncher, Application, Color, Data, DelegateCtx, Env, Event, Lens,
-    LensExt, LocalizedString, UnitPoint, Widget, WindowDesc, WindowId,
-};
-use paintr::{
-    get_image_from_clipboard, put_image_to_clipboard, CanvasData, Edit, EditDesc, Paste,
-    UndoHistory,
-};
-
 macro_rules! L {
     ($str:literal) => {
         $crate::LocalizedString::new($str)
@@ -17,14 +7,22 @@ macro_rules! L {
 mod commands;
 mod dialogs;
 mod menu;
+mod ui;
 mod widgets;
 
-use dialogs::DialogData;
-use std::sync::Arc;
-use widgets::{
-    notif_bar::{Notification, NotificationContainer},
-    Canvas, ModalContainer, Named,
+use druid::{
+    theme, AppDelegate, AppLauncher, Application, Color, Data, DelegateCtx, Env, Event, Lens,
+    LocalizedString, WindowDesc, WindowId,
 };
+use paintr::{
+    get_image_from_clipboard, put_image_to_clipboard, CanvasData, Edit, EditDesc, Paste,
+    UndoHistory,
+};
+use std::sync::Arc;
+
+use dialogs::DialogData;
+use ui::ui_builder;
+use widgets::notif_bar::Notification;
 
 fn main() {
     let app_state = AppState {
@@ -63,6 +61,13 @@ struct AppState {
 
 const NEW_FILE_NAME: &str = "Untitled";
 
+fn to_rgba(img: image::DynamicImage) -> image::RgbaImage {
+    match img {
+        image::DynamicImage::ImageRgba8(img) => img,
+        _ => img.to_rgba(),
+    }
+}
+
 impl AppState {
     fn show_notification(&mut self, n: Notification) {
         Arc::make_mut(&mut self.notifications).push(n);
@@ -70,20 +75,14 @@ impl AppState {
 
     fn do_open_image(&mut self, path: &std::path::Path) -> Result<(), Error> {
         let img = image::open(path)?;
-        let img = match img {
-            image::DynamicImage::ImageRgba8(_) => img,
-            _ => image::DynamicImage::ImageRgba8(img.to_rgba()),
-        };
-
-        self.canvas = Some(CanvasData::new(path, Arc::new(img)));
+        self.canvas = Some(CanvasData::new(path, to_rgba(img)));
         Ok(())
     }
 
     fn do_new_image_from_clipboard(&mut self) -> Result<(), Error> {
         let img = get_image_from_clipboard()?
             .ok_or_else(|| "Clipboard is empty / non-image".to_string())?;
-
-        self.canvas = Some(CanvasData::new(NEW_FILE_NAME, Arc::new(img)));
+        self.canvas = Some(CanvasData::new(NEW_FILE_NAME, to_rgba(img)));
         Ok(())
     }
 
@@ -92,20 +91,18 @@ impl AppState {
             info.width.expect("It must be valid after dialog closed."),
             info.height.expect("It must be valid after dialog closed."),
         );
-
         // Fill with white color
         let img = image::ImageBuffer::from_fn(w, h, |_, _| {
             image::Rgba([0xff_u8, 0xff_u8, 0xff_u8, 0xff_u8])
         });
 
-        self.canvas =
-            Some(CanvasData::new(NEW_FILE_NAME, Arc::new(image::DynamicImage::ImageRgba8(img))));
+        self.canvas = Some(CanvasData::new(NEW_FILE_NAME, img));
         Ok(())
     }
 
     fn do_save_as_image(&mut self, path: &std::path::Path) -> Result<(), Error> {
-        let canvas = self.canvas.as_ref().ok_or_else(|| "No image was found.")?;
-        self.canvas = Some(CanvasData::new(path, canvas.save(path)?));
+        let canvas = self.canvas.as_mut().ok_or_else(|| "No image was found.")?;
+        canvas.save(path)?;
         Ok(())
     }
 
@@ -150,7 +147,7 @@ impl AppState {
             Some(img) => img,
             None => return Ok(false),
         };
-
+        let img = to_rgba(img);
         Ok(self.do_edit(Paste::new(img)))
     }
 
@@ -283,48 +280,4 @@ impl AppDelegate<AppState> for Delegate {
         // It do not works right now, maybe a druid bug
         Application::quit();
     }
-}
-
-fn ui_builder() -> impl Widget<AppState> {
-    let text = L!("paintr-front-page-welcome");
-    let label = Label::new(text.clone());
-
-    let image_lens = AppState::canvas.map(
-        |it| it.clone(),
-        |to: &mut _, from| {
-            if let Some(s) = to.as_mut() {
-                if let Some(f) = from {
-                    *s = f;
-                }
-            }
-        },
-    );
-
-    let main_content = Either::new(
-        |data: &AppState, &_| !data.canvas.is_some(),
-        Align::centered(Padding::new(10.0, label)),
-        Align::centered(Padding::new(
-            10.0,
-            Named::new(Scroll::new(Canvas::new().lens(image_lens)), |data: &AppState, _env: &_| {
-                data.image_file_name()
-            }),
-        )),
-    );
-
-    let container = ModalContainer::new(
-        NotificationContainer::new(main_content, AppState::notifications),
-        |modal, _| modal.widget(),
-        AppState::modal,
-    );
-
-    Flex::column().with_child(container, 1.0).with_child(
-        Label::new(|data: &AppState, _env: &Env| data.status().unwrap_or_default())
-            .align(UnitPoint::RIGHT)
-            .padding((5.0, 3.0))
-            .background(Color::rgb(0.5, 0.3, 0.5))
-            .env_scope(|env, _| {
-                env.set(theme::TEXT_SIZE_NORMAL, 12.0);
-            }),
-        0.0,
-    )
 }
