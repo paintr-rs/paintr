@@ -13,7 +13,7 @@ fn file_menu(app: &AppState) -> MenuDesc<AppState> {
         .append_separator()
         .append(open())
         .append_separator()
-        .append(save().disabled_if(|| app.image.is_none()))
+        .append(save().disabled_if(|| app.canvas.is_none()))
         .append_separator()
         .append(exit())
 }
