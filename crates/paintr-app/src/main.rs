@@ -113,9 +113,9 @@ impl AppState {
         let img = self
             .canvas
             .as_ref()
-            .and_then(|canvas| canvas.selection().map(|sel| sel.image(canvas.image())));
+            .and_then(|canvas| canvas.selection().map(|sel| sel.copy_image(canvas.image())));
 
-        let img = match img {
+        let img = match img.flatten() {
             None => return Ok(false),
             Some(img) => img,
         };

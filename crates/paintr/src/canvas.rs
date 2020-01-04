@@ -1,4 +1,4 @@
-use druid::{Data, PaintCtx, Rect, Size};
+use druid::{Data, PaintCtx, Size};
 use image::DynamicImage;
 
 use crate::edit::{Edit, EditDesc};
@@ -40,11 +40,12 @@ impl CanvasData {
         self.planes.merged().expect("There is at least plane in Canvas")
     }
 
-    pub fn select_rect(&mut self, rect: Rect) {
-        if rect.size() == Size::ZERO {
+    pub fn select(&mut self, sel: impl Into<Selection>) {
+        let sel = sel.into();
+        if sel.size() == Size::ZERO {
             self.selection = None;
         } else {
-            self.selection = Some(Selection::rect(rect));
+            self.selection = Some(sel);
         }
     }
 }
