@@ -20,18 +20,6 @@ impl std::fmt::Debug for Plane {
     }
 }
 
-macro_rules! impl_from {
-    ($trait:ident : [$($from:ty => $to:ident ),*] ) => {
-        $(
-            impl From<$from> for $trait {
-                fn from(f: $from) -> $trait {
-                    $trait::$to(f)
-                }
-            }
-        )*
-    }
-}
-
 impl_from! {
     Plane : [Arc<DynamicImage> => Image]
 }

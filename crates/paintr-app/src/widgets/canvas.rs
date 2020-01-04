@@ -3,16 +3,50 @@ use druid::{
     UpdateCtx, Widget,
 };
 
-use paintr::{CanvasData, Paintable};
+use paintr::{CanvasData, Paintable, Selection};
+
+#[derive(Debug)]
+enum EditMode {
+    New { down: Point },
+    Move { down: Point, old: Selection },
+}
+
+impl EditMode {
+    fn from_point(canvas: &Option<CanvasData>, pt: Point) -> Option<EditMode> {
+        if let Some(sel) = canvas.as_ref()?.selection() {
+            if sel.contains(pt) {
+                return Some(EditMode::Move { down: pt, old: sel.clone() });
+            }
+        }
+
+        Some(EditMode::New { down: pt })
+    }
+
+    fn moved(&mut self, canvas: &mut Option<CanvasData>, pt: Point) -> Option<()> {
+        let canvas = canvas.as_mut()?;
+
+        match self {
+            EditMode::New { down } => {
+                canvas.select(Rect::from_points(*down, pt));
+            }
+            EditMode::Move { down, old } => {
+                let offset = pt.to_vec2() - down.to_vec2();
+                canvas.select(old.transform(offset));
+            }
+        }
+
+        Some(())
+    }
+}
 
 #[derive(Debug)]
 pub struct Canvas {
-    down: Option<Point>,
+    mode: Option<EditMode>,
 }
 
 impl Canvas {
     pub fn new() -> Canvas {
-        Canvas { down: None }
+        Canvas { mode: None }
     }
 }
 
@@ -23,22 +57,20 @@ impl Widget<DataType> for Canvas {
         match event {
             Event::MouseDown(me) => {
                 if me.button == MouseButton::Left {
-                    self.down = Some(me.pos)
+                    self.mode = EditMode::from_point(data, me.pos);
                 }
             }
             Event::MouseMoved(me) => {
-                if let Some(down) = self.down {
-                    if let Some(data) = data {
-                        data.select_rect(Rect::from_points(down, me.pos));
+                if let Some(mode) = self.mode.as_mut() {
+                    if mode.moved(data, me.pos).is_some() {
                         ctx.invalidate();
                     }
                 }
             }
             Event::MouseUp(me) => {
                 if me.button == MouseButton::Left {
-                    if let Some(down) = self.down.take() {
-                        if let Some(data) = data {
-                            data.select_rect(Rect::from_points(down, me.pos));
+                    if let Some(mut mode) = self.mode.take() {
+                        if mode.moved(data, me.pos).is_some() {
                             ctx.invalidate();
                         }
                     }
