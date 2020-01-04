@@ -4,7 +4,8 @@ use druid::{
     LensExt, LocalizedString, UnitPoint, Widget, WindowDesc, WindowId,
 };
 use paintr::{
-    get_image_from_clipboard, put_image_to_clipboard, CanvasData, Edit, Paste, UndoHistory,
+    get_image_from_clipboard, put_image_to_clipboard, CanvasData, Edit, EditDesc, Paste,
+    UndoHistory,
 };
 
 macro_rules! L {
@@ -28,7 +29,7 @@ use widgets::{
 fn main() {
     let app_state = AppState {
         notifications: Arc::new(Vec::new()),
-        image: None,
+        canvas: None,
         modal: None,
         history: UndoHistory::new(),
     };
@@ -55,10 +56,12 @@ type Error = Box<dyn std::error::Error>;
 #[derive(Clone, Data, Lens)]
 struct AppState {
     notifications: Arc<Vec<Notification>>,
-    image: Option<(Arc<std::path::PathBuf>, CanvasData)>,
+    canvas: Option<CanvasData>,
     modal: Option<DialogData>,
     history: UndoHistory<CanvasData>,
 }
+
+const NEW_FILE_NAME: &str = "Untitled";
 
 impl AppState {
     fn show_notification(&mut self, n: Notification) {
@@ -72,7 +75,7 @@ impl AppState {
             _ => image::DynamicImage::ImageRgba8(img.to_rgba()),
         };
 
-        self.image = Some((Arc::new(path.to_owned()), CanvasData::new(Arc::new(img))));
+        self.canvas = Some(CanvasData::new(path, Arc::new(img)));
         Ok(())
     }
 
@@ -80,10 +83,7 @@ impl AppState {
         let img = get_image_from_clipboard()?
             .ok_or_else(|| "Clipboard is empty / non-image".to_string())?;
 
-        self.image = Some((
-            Arc::new(std::path::Path::new("Untitled").into()),
-            CanvasData::new(Arc::new(img)),
-        ));
+        self.canvas = Some(CanvasData::new(NEW_FILE_NAME, Arc::new(img)));
         Ok(())
     }
 
@@ -93,27 +93,26 @@ impl AppState {
             info.height.expect("It must be valid after dialog closed."),
         );
 
+        // Fill with white color
         let img = image::ImageBuffer::from_fn(w, h, |_, _| {
             image::Rgba([0xff_u8, 0xff_u8, 0xff_u8, 0xff_u8])
         });
 
-        self.image = Some((
-            Arc::new(std::path::Path::new("Untitled").into()),
-            CanvasData::new(Arc::new(image::DynamicImage::ImageRgba8(img))),
-        ));
+        self.canvas =
+            Some(CanvasData::new(NEW_FILE_NAME, Arc::new(image::DynamicImage::ImageRgba8(img))));
         Ok(())
     }
 
     fn do_save_as_image(&mut self, path: &std::path::Path) -> Result<(), Error> {
-        let (_, canvas) = self.image.take().ok_or_else(|| "No image was found.")?;
-        let canvas = CanvasData::new(canvas.save(path)?);
-        self.image = Some((Arc::new(path.to_path_buf()), canvas));
+        let canvas = self.canvas.as_ref().ok_or_else(|| "No image was found.")?;
+        self.canvas = Some(CanvasData::new(path, canvas.save(path)?));
         Ok(())
     }
 
     fn do_copy(&mut self) -> Result<bool, Error> {
         let img = self
-            .canvas()
+            .canvas
+            .as_ref()
             .and_then(|canvas| canvas.selection().map(|sel| sel.image(canvas.image())));
 
         let img = match img {
@@ -125,41 +124,28 @@ impl AppState {
         Ok(true)
     }
 
-    fn do_undo(&mut self) -> Option<String> {
-        if self.image.is_none() {
-            return None;
-        }
-        let (old, desc) = self.history.undo()?;
-        let canvas: &mut _ = self.image.as_mut().map(|(_, canvas)| canvas)?;
-        *canvas = old;
-        Some(desc)
-    }
-
     fn do_edit(&mut self, edit: impl Edit<CanvasData> + 'static) -> bool {
-        if let Some(canvas) = self.canvas_mut() {
-            let old = edit.execute(canvas);
-            self.history.push(Arc::new(edit), old);
+        let (history, canvas) = (&mut self.history, self.canvas.as_mut());
+        if let Some(canvas) = canvas {
+            history.edit(canvas, edit);
             true
         } else {
             false
         }
     }
 
-    fn do_redo(&mut self) -> Option<String> {
-        if self.canvas().is_none() {
-            return None;
-        }
-        let edit = self.history.redo()?;
-        let canvas = self.canvas_mut().unwrap();
-        let old = edit.execute(canvas);
-        let desc = edit.description();
-        self.history.push(edit, old);
-        Some(desc)
+    fn do_undo(&mut self) -> Option<EditDesc> {
+        let (history, canvas) = (&mut self.history, self.canvas.as_mut()?);
+        history.undo(canvas)
+    }
+
+    fn do_redo(&mut self) -> Option<EditDesc> {
+        let (history, canvas) = (&mut self.history, self.canvas.as_mut()?);
+        history.redo(canvas)
     }
 
     fn do_paste(&mut self) -> Result<bool, Error> {
         let img = get_image_from_clipboard()?;
-
         let img = match img {
             Some(img) => img,
             None => return Ok(false),
@@ -169,9 +155,9 @@ impl AppState {
     }
 
     fn image_file_name(&self) -> String {
-        match &self.image {
-            None => "Untitled".into(),
-            Some((path, _)) => path.to_string_lossy().into(),
+        match &self.canvas {
+            None => NEW_FILE_NAME.to_owned(),
+            Some(canvas) => canvas.path().to_string_lossy().into(),
         }
     }
 
@@ -182,16 +168,8 @@ impl AppState {
         );
     }
 
-    fn canvas(&self) -> Option<&CanvasData> {
-        self.image.as_ref().map(|(_, canvas)| canvas)
-    }
-
-    fn canvas_mut(&mut self) -> Option<&mut CanvasData> {
-        self.image.as_mut().map(|(_, canvas)| canvas)
-    }
-
     fn status(&self) -> Option<String> {
-        Some(self.canvas()?.selection()?.description())
+        Some(self.canvas.as_ref()?.selection()?.description())
     }
 }
 
@@ -311,19 +289,19 @@ fn ui_builder() -> impl Widget<AppState> {
     let text = L!("paintr-front-page-welcome");
     let label = Label::new(text.clone());
 
-    let image_lens = AppState::image.map(
-        |it| it.clone().map(|it| it.1),
+    let image_lens = AppState::canvas.map(
+        |it| it.clone(),
         |to: &mut _, from| {
             if let Some(s) = to.as_mut() {
                 if let Some(f) = from {
-                    s.1 = f;
+                    *s = f;
                 }
             }
         },
     );
 
     let main_content = Either::new(
-        |data: &AppState, &_| !data.image.is_some(),
+        |data: &AppState, &_| !data.canvas.is_some(),
         Align::centered(Padding::new(10.0, label)),
         Align::centered(Padding::new(
             10.0,

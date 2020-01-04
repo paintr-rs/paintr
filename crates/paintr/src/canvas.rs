@@ -1,7 +1,7 @@
 use druid::{Data, PaintCtx, Rect, Size};
 use image::DynamicImage;
 
-use crate::edit::Edit;
+use crate::edit::{Edit, EditDesc};
 use crate::plane::Planes;
 use crate::{Paintable, Selection};
 
@@ -10,15 +10,20 @@ use std::sync::Arc;
 // FIXME: Change name to Layer
 #[derive(Data, Clone)]
 pub struct CanvasData {
+    path: Arc<std::path::PathBuf>,
     selection: Option<Selection>,
     planes: Planes,
 }
 
 impl CanvasData {
-    pub fn new(img: Arc<DynamicImage>) -> CanvasData {
+    pub fn new(path: impl Into<std::path::PathBuf>, img: Arc<DynamicImage>) -> CanvasData {
         let mut planes = Planes::new();
         planes.push(img.clone());
-        CanvasData { selection: None, planes }
+        CanvasData { selection: None, planes, path: Arc::new(path.into()) }
+    }
+
+    pub fn path(&self) -> &std::path::Path {
+        self.path.as_ref()
     }
 
     pub fn save(&self, path: &std::path::Path) -> Result<Arc<DynamicImage>, std::io::Error> {
@@ -74,7 +79,7 @@ impl Edit<CanvasData> for Paste {
         data.planes.push(Arc::new(self.img.clone()));
     }
 
-    fn description(&self) -> String {
-        "Paste".to_string()
+    fn description(&self) -> EditDesc {
+        EditDesc::new("Paste")
     }
 }

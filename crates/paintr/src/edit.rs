@@ -2,6 +2,21 @@ use druid::Data;
 
 use std::sync::Arc;
 
+#[derive(Clone, Debug)]
+pub struct EditDesc(String);
+
+impl EditDesc {
+    pub(crate) fn new(s: impl Into<String>) -> EditDesc {
+        EditDesc(s.into())
+    }
+}
+
+impl std::fmt::Display for EditDesc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// Edit represent an edit action
 pub trait Edit<T: Data> {
     fn apply(&self, data: &mut T);
@@ -12,7 +27,7 @@ pub trait Edit<T: Data> {
         old
     }
 
-    fn description(&self) -> String;
+    fn description(&self) -> EditDesc;
 }
 
 #[derive(Clone)]
@@ -20,7 +35,7 @@ pub struct UndoHistory<T>
 where
     T: Data,
 {
-    undos: Vec<(Arc<dyn Edit<T>>, T)>,
+    undos: Vec<UndoState<T>>,
     redos: Vec<Arc<dyn Edit<T>>>,
 }
 
@@ -30,23 +45,49 @@ impl<T: Data> Data for UndoHistory<T> {
     }
 }
 
-impl<T: Clone + Data> UndoHistory<T> {
-    pub fn push(&mut self, edit: Arc<dyn Edit<T>>, data: T) {
-        self.undos.push((edit, data));
+#[derive(Clone)]
+struct UndoState<T: Data> {
+    old: T,
+    edit: Arc<dyn Edit<T>>,
+}
+
+impl<T: Data> UndoState<T> {
+    fn new(old: T, edit: Arc<dyn Edit<T>>) -> UndoState<T> {
+        UndoState { old, edit }
+    }
+
+    fn undo(self, data: &mut T) -> Arc<dyn Edit<T>> {
+        let (edit, old) = (self.edit, self.old);
+        *data = old;
+        edit
+    }
+}
+
+impl<T: Data> UndoHistory<T> {
+    pub fn edit(&mut self, data: &mut T, edit: impl Edit<T> + 'static) {
+        self.edit_inner(data, Arc::new(edit));
     }
 
     pub fn new() -> UndoHistory<T> {
         UndoHistory { undos: Vec::new(), redos: Vec::new() }
     }
 
-    pub fn undo(&mut self) -> Option<(T, String)> {
-        let (edit, old) = self.undos.pop()?;
+    pub fn undo(&mut self, data: &mut T) -> Option<EditDesc> {
+        let edit = self.undos.pop()?.undo(data);
         let desc = edit.description();
         self.redos.push(edit);
-        Some((old, desc))
+        Some(desc)
     }
 
-    pub fn redo(&mut self) -> Option<Arc<dyn Edit<T>>> {
-        self.redos.pop()
+    pub fn redo(&mut self, data: &mut T) -> Option<EditDesc> {
+        let edit = self.redos.pop()?;
+        let desc = edit.description();
+        self.edit_inner(data, edit);
+        Some(desc)
+    }
+
+    fn edit_inner(&mut self, data: &mut T, edit: Arc<dyn Edit<T>>) {
+        let old = edit.execute(data);
+        self.undos.push(UndoState::new(old, edit));
     }
 }
