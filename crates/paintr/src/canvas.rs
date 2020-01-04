@@ -16,10 +16,10 @@ pub struct CanvasData {
 }
 
 impl CanvasData {
-    pub fn new(path: std::path::PathBuf, img: Arc<DynamicImage>) -> CanvasData {
+    pub fn new(path: impl Into<std::path::PathBuf>, img: Arc<DynamicImage>) -> CanvasData {
         let mut planes = Planes::new();
         planes.push(img.clone());
-        CanvasData { selection: None, planes, path: Arc::new(path) }
+        CanvasData { selection: None, planes, path: Arc::new(path.into()) }
     }
 
     pub fn path(&self) -> &std::path::Path {

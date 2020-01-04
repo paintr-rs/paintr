@@ -61,6 +61,8 @@ struct AppState {
     history: UndoHistory<CanvasData>,
 }
 
+const NEW_FILE_NAME: &str = "Untitled";
+
 impl AppState {
     fn show_notification(&mut self, n: Notification) {
         Arc::make_mut(&mut self.notifications).push(n);
@@ -73,7 +75,7 @@ impl AppState {
             _ => image::DynamicImage::ImageRgba8(img.to_rgba()),
         };
 
-        self.canvas = Some(CanvasData::new(path.to_owned(), Arc::new(img)));
+        self.canvas = Some(CanvasData::new(path, Arc::new(img)));
         Ok(())
     }
 
@@ -81,7 +83,7 @@ impl AppState {
         let img = get_image_from_clipboard()?
             .ok_or_else(|| "Clipboard is empty / non-image".to_string())?;
 
-        self.canvas = Some(CanvasData::new(std::path::Path::new("Untitled").into(), Arc::new(img)));
+        self.canvas = Some(CanvasData::new(NEW_FILE_NAME, Arc::new(img)));
         Ok(())
     }
 
@@ -91,22 +93,19 @@ impl AppState {
             info.height.expect("It must be valid after dialog closed."),
         );
 
+        // Fill with white color
         let img = image::ImageBuffer::from_fn(w, h, |_, _| {
             image::Rgba([0xff_u8, 0xff_u8, 0xff_u8, 0xff_u8])
         });
 
-        let path = std::path::Path::new("Untitled");
-
         self.canvas =
-            Some(CanvasData::new(path.into(), Arc::new(image::DynamicImage::ImageRgba8(img))));
+            Some(CanvasData::new(NEW_FILE_NAME, Arc::new(image::DynamicImage::ImageRgba8(img))));
         Ok(())
     }
 
     fn do_save_as_image(&mut self, path: &std::path::Path) -> Result<(), Error> {
         let canvas = self.canvas.as_ref().ok_or_else(|| "No image was found.")?;
-        let saved = canvas.save(path)?;
-        let canvas = CanvasData::new(path.to_path_buf(), saved);
-        self.canvas = Some(canvas);
+        self.canvas = Some(CanvasData::new(path, canvas.save(path)?));
         Ok(())
     }
 
@@ -128,7 +127,7 @@ impl AppState {
     fn do_edit(&mut self, edit: impl Edit<CanvasData> + 'static) -> bool {
         let (history, canvas) = (&mut self.history, self.canvas.as_mut());
         if let Some(canvas) = canvas {
-            history.push(canvas, edit);
+            history.edit(canvas, edit);
             true
         } else {
             false
@@ -157,7 +156,7 @@ impl AppState {
 
     fn image_file_name(&self) -> String {
         match &self.canvas {
-            None => "Untitled".into(),
+            None => NEW_FILE_NAME.to_owned(),
             Some(canvas) => canvas.path().to_string_lossy().into(),
         }
     }

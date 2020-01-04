@@ -35,7 +35,7 @@ pub struct UndoHistory<T>
 where
     T: Data,
 {
-    undos: Vec<(Arc<dyn Edit<T>>, T)>,
+    undos: Vec<UndoState<T>>,
     redos: Vec<Arc<dyn Edit<T>>>,
 }
 
@@ -45,9 +45,27 @@ impl<T: Data> Data for UndoHistory<T> {
     }
 }
 
-impl<T: Clone + Data> UndoHistory<T> {
-    pub fn push(&mut self, data: &mut T, edit: impl Edit<T> + 'static) {
-        self.push_inner(data, Arc::new(edit));
+#[derive(Clone)]
+struct UndoState<T: Data> {
+    old: T,
+    edit: Arc<dyn Edit<T>>,
+}
+
+impl<T: Data> UndoState<T> {
+    fn new(old: T, edit: Arc<dyn Edit<T>>) -> UndoState<T> {
+        UndoState { old, edit }
+    }
+
+    fn undo(self, data: &mut T) -> Arc<dyn Edit<T>> {
+        let (edit, old) = (self.edit, self.old);
+        *data = old;
+        edit
+    }
+}
+
+impl<T: Data> UndoHistory<T> {
+    pub fn edit(&mut self, data: &mut T, edit: impl Edit<T> + 'static) {
+        self.edit_inner(data, Arc::new(edit));
     }
 
     pub fn new() -> UndoHistory<T> {
@@ -55,22 +73,21 @@ impl<T: Clone + Data> UndoHistory<T> {
     }
 
     pub fn undo(&mut self, data: &mut T) -> Option<EditDesc> {
-        let (edit, old) = self.undos.pop()?;
+        let edit = self.undos.pop()?.undo(data);
         let desc = edit.description();
         self.redos.push(edit);
-        *data = old;
         Some(desc)
     }
 
     pub fn redo(&mut self, data: &mut T) -> Option<EditDesc> {
         let edit = self.redos.pop()?;
         let desc = edit.description();
-        self.push_inner(data, edit);
+        self.edit_inner(data, edit);
         Some(desc)
     }
 
-    fn push_inner(&mut self, data: &mut T, edit: Arc<dyn Edit<T>>) {
+    fn edit_inner(&mut self, data: &mut T, edit: Arc<dyn Edit<T>>) {
         let old = edit.execute(data);
-        self.undos.push((edit, old));
+        self.undos.push(UndoState::new(old, edit));
     }
 }
