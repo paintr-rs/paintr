@@ -65,7 +65,9 @@ impl<T: Data> UndoState<T> {
 
 impl<T: Data> UndoHistory<T> {
     pub fn edit(&mut self, data: &mut T, edit: impl Edit<T> + 'static) {
-        self.edit_inner(data, Arc::new(edit));
+        let old = edit.execute(data);
+        self.undos.push(UndoState::new(old, Arc::new(edit)));
+        self.redos.clear();
     }
 
     pub fn new() -> UndoHistory<T> {
@@ -82,12 +84,8 @@ impl<T: Data> UndoHistory<T> {
     pub fn redo(&mut self, data: &mut T) -> Option<EditDesc> {
         let edit = self.redos.pop()?;
         let desc = edit.description();
-        self.edit_inner(data, edit);
-        Some(desc)
-    }
-
-    fn edit_inner(&mut self, data: &mut T, edit: Arc<dyn Edit<T>>) {
         let old = edit.execute(data);
         self.undos.push(UndoState::new(old, edit));
+        Some(desc)
     }
 }
