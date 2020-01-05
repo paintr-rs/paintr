@@ -7,6 +7,7 @@ macro_rules! L {
 mod commands;
 mod dialogs;
 mod menu;
+mod theme_ext;
 mod ui;
 mod widgets;
 
@@ -30,6 +31,7 @@ fn main() {
         canvas: None,
         modal: None,
         history: UndoHistory::new(),
+        tool: Tool::Select,
     };
 
     let main_window = WindowDesc::new(ui_builder)
@@ -41,6 +43,7 @@ fn main() {
         .delegate(Delegate)
         .configure_env(|env| {
             env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
+            theme_ext::init(env);
         })
         // .use_simple_logger()
         .launch(app_state)
@@ -51,12 +54,19 @@ struct Delegate;
 
 type Error = Box<dyn std::error::Error>;
 
+#[derive(Clone, Data, PartialEq, Eq, Copy)]
+enum Tool {
+    Move,
+    Select,
+}
+
 #[derive(Clone, Data, Lens)]
 struct AppState {
     notifications: Arc<Vec<Notification>>,
     canvas: Option<CanvasData>,
     modal: Option<DialogData>,
     history: UndoHistory<CanvasData>,
+    tool: Tool,
 }
 
 const NEW_FILE_NAME: &str = "Untitled";
