@@ -1,8 +1,10 @@
 use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, WidgetExt};
 use druid::{theme, Color, Env, UnitPoint, Widget};
 
-use crate::widgets::{notif_bar::NotificationContainer, Canvas, ModalContainer, Named, Svg};
-use crate::AppState;
+use crate::widgets::{
+    notif_bar::NotificationContainer, Canvas, ModalContainer, Named, RadioGroup, Svg,
+};
+use crate::{AppState, Tool};
 
 fn canvas() -> impl Widget<AppState> {
     Either::new(
@@ -24,13 +26,20 @@ fn toolbar() -> impl Widget<AppState> {
     let move_tool_icon = include_str!("assets/icons/move_tool.svg");
     let rect_marquee_tool_icon = include_str!("assets/icons/rect_marquee_tool.svg");
 
-    Flex::column()
-        .with_child(Svg::new(move_tool_icon).fix_width(button_size).fix_height(button_size), 0.0)
-        .with_child(
-            Svg::new(rect_marquee_tool_icon).fix_width(button_size).fix_height(button_size),
-            0.0,
-        )
-        .padding(5.0)
+    let buttons: Vec<(Box<dyn Widget<_>>, _)> = vec![
+        (
+            Box::new(Svg::new(move_tool_icon).fix_width(button_size).fix_height(button_size)),
+            Tool::Move,
+        ),
+        (
+            Box::new(
+                Svg::new(rect_marquee_tool_icon).fix_width(button_size).fix_height(button_size),
+            ),
+            Tool::Select,
+        ),
+    ];
+
+    RadioGroup::new(buttons).lens(AppState::tool).padding(5.0)
 }
 
 pub(crate) fn ui_builder() -> impl Widget<AppState> {
