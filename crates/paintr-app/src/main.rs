@@ -23,7 +23,7 @@ use paintr::{
 use std::sync::Arc;
 
 use dialogs::DialogData;
-use tools::Tool;
+use tools::ToolKind;
 use ui::ui_builder;
 use widgets::notif_bar::Notification;
 
@@ -33,7 +33,7 @@ fn main() {
         canvas: None,
         modal: None,
         history: UndoHistory::new(),
-        tool: Tool::Select,
+        tool: ToolKind::Select,
     };
 
     let main_window = WindowDesc::new(ui_builder)
@@ -62,7 +62,7 @@ struct AppState {
     canvas: Option<CanvasData>,
     modal: Option<DialogData>,
     history: UndoHistory<CanvasData>,
-    tool: Tool,
+    tool: ToolKind,
 }
 
 const NEW_FILE_NAME: &str = "Untitled";

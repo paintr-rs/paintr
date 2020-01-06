@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! impl_from {
     ($trait:ident : [$($from:ty => $to:ident ),*] ) => {
         $(
