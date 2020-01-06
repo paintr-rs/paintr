@@ -8,6 +8,7 @@ mod commands;
 mod dialogs;
 mod menu;
 mod theme_ext;
+mod tools;
 mod ui;
 mod widgets;
 
@@ -22,6 +23,7 @@ use paintr::{
 use std::sync::Arc;
 
 use dialogs::DialogData;
+use tools::Tool;
 use ui::ui_builder;
 use widgets::notif_bar::Notification;
 
@@ -53,12 +55,6 @@ fn main() {
 struct Delegate;
 
 type Error = Box<dyn std::error::Error>;
-
-#[derive(Clone, Data, PartialEq, Eq, Copy)]
-enum Tool {
-    Move,
-    Select,
-}
 
 #[derive(Clone, Data, Lens)]
 struct AppState {
