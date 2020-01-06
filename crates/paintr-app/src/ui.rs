@@ -1,5 +1,5 @@
 use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, WidgetExt};
-use druid::{theme, Color, Env, UnitPoint, Widget};
+use druid::{lens::Id, theme, Color, Env, LensExt, UnitPoint, Widget};
 
 use crate::widgets::{
     notif_bar::NotificationContainer, Canvas, ModalContainer, Named, RadioGroup, Svg,
@@ -7,13 +7,21 @@ use crate::widgets::{
 use crate::{AppState, Tool};
 
 fn canvas() -> impl Widget<AppState> {
+    let canvas_lens = Id.map(
+        |app: &AppState| (app.canvas.clone(), app.tool),
+        |app: &mut _, (canvas, tool)| {
+            app.canvas = canvas;
+            app.tool = tool;
+        },
+    );
+
     Either::new(
         |data: &AppState, &_| !data.canvas.is_some(),
         Align::centered(Padding::new(10.0, Label::new(L!("paintr-front-page-welcome")))),
         Align::centered(Padding::new(
             10.0,
             Named::new(
-                Scroll::new(Canvas::new().lens(AppState::canvas)),
+                Scroll::new(Canvas::new().lens(canvas_lens)),
                 |data: &AppState, _env: &_| data.image_file_name(),
             ),
         )),
