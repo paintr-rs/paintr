@@ -1,6 +1,6 @@
 use druid::{BoxConstraints, Env, Event, EventCtx, LayoutCtx, PaintCtx, Size, UpdateCtx, Widget};
 
-use crate::tools::{Tool, ToolCtx};
+use crate::tools::{ToolCtx, ToolKind};
 use paintr::{CanvasData, Paintable};
 
 #[derive(Debug)]
@@ -14,11 +14,11 @@ impl Canvas {
     }
 }
 
-type DataType = (Option<CanvasData>, Tool);
+type DataType = (Option<CanvasData>, ToolKind);
 
 impl Widget<DataType> for Canvas {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut DataType, _env: &Env) {
-        self.tool_ctx = data.1.event(ctx, event, &mut data.0, self.tool_ctx.take())
+        data.1.event(ctx, event, &mut data.0, &mut self.tool_ctx)
     }
 
     fn update(
