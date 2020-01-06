@@ -24,3 +24,5 @@ pub use edit::{Edit, EditDesc, UndoHistory};
 pub use paintable::Paintable;
 pub use selections::Selection;
 pub use svgimage::SvgImage;
+
+pub mod lens;
