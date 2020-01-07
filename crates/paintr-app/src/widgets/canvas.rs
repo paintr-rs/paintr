@@ -43,11 +43,11 @@ impl Widget<DataType> for Canvas {
 
     fn paint(&mut self, paint_ctx: &mut PaintCtx, data: &DataType, _env: &Env) {
         if let Some(canvas) = &data.0 {
-            canvas.paint(paint_ctx);
+            canvas.paint(paint_ctx.render_ctx);
 
             if data.1 == ToolKind::Select {
                 if let Some(selection) = canvas.selection().as_ref() {
-                    selection.paint(paint_ctx);
+                    selection.paint(paint_ctx.render_ctx);
                 }
             }
         }

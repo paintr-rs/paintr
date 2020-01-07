@@ -1,6 +1,6 @@
 use crate::Paintable;
 use druid::kurbo::Affine;
-use druid::{Data, PaintCtx, Point, Rect, RenderContext, Size, Vec2};
+use druid::{Data, Point, Rect, RenderContext, Size, Vec2};
 use image::{DynamicImage, GenericImage, GenericImageView};
 
 use std::sync::Arc;
@@ -26,9 +26,9 @@ impl_from! {
 }
 
 impl Paintable for Plane {
-    fn paint(&self, paint_ctx: &mut PaintCtx) {
+    fn paint(&self, render_ctx: &mut impl RenderContext) {
         match self {
-            Plane::Image(it) => it.paint(paint_ctx),
+            Plane::Image(it) => it.paint(render_ctx),
         };
     }
 
@@ -134,19 +134,13 @@ impl Planes {
 }
 
 impl Paintable for Planes {
-    fn paint(&self, paint_ctx: &mut PaintCtx) {
+    fn paint(&self, render_ctx: &mut impl RenderContext) {
         for plane in &self.planes {
-            let _ = paint_ctx.save();
-            paint_ctx.transform(Affine::translate(plane.transform));
-            plane.inner.paint(paint_ctx);
-            let _ = paint_ctx.restore();
-
-            // FIXME: paintable to use impl RenderContext
-            // paint_ctx.with_save(|ctx:&mut PaintCtx|{
-            //     ctx.transform(Affine::translate(plane.transform));
-            //     plane.inner.paint(paint_ctx);
-            //     Ok(())
-            // });
+            let _ = render_ctx.with_save(|ctx| {
+                ctx.transform(Affine::translate(plane.transform));
+                plane.inner.paint(ctx);
+                Ok(())
+            });
         }
     }
     fn paint_size(&self) -> Option<Size> {

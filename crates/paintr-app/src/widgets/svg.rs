@@ -1,8 +1,7 @@
-//! Paint helper trait
-//!
-//! A paint trait which let overriding paint behaivor easier
+use druid::kurbo::Affine;
 use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, Size, UpdateCtx, Widget,
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, RenderContext, Size,
+    UpdateCtx, Widget,
 };
 
 use crate::theme_ext::PAINTR_TOGGLE_FOREGROND;
@@ -21,7 +20,20 @@ impl<T: Data> Widget<T> for Svg<T> {
     }
     fn paint(&mut self, paint_ctx: &mut PaintCtx, _data: &T, env: &Env) {
         self.svg_image.set_default_fill(env.get(PAINTR_TOGGLE_FOREGROND));
-        self.svg_image.paint(paint_ctx);
+
+        if let Some(rt) = self.svg_image.paint_size() {
+            let size = paint_ctx.size();
+            let sw = size.width / rt.width;
+            let sh = size.height / rt.height;
+
+            let _ = paint_ctx.with_save(|ctx| {
+                ctx.transform(Affine::new([sw, 0.0, 0.0, sh, 0.0, 0.0]));
+                self.svg_image.paint(ctx);
+                Ok(())
+            });
+        } else {
+            self.svg_image.paint(paint_ctx.render_ctx);
+        }
     }
 }
 
