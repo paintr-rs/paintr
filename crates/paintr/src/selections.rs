@@ -1,6 +1,6 @@
 use druid::kurbo::Shape;
 use druid::piet::StrokeStyle;
-use druid::{Color, Data, PaintCtx, Point, Rect, RenderContext, Size, Vec2};
+use druid::{Color, Data, Point, Rect, RenderContext, Size, Vec2};
 
 use crate::Paintable;
 use image::DynamicImage;
@@ -74,7 +74,7 @@ impl Data for Selection {
 }
 
 impl Paintable for Selection {
-    fn paint(&self, paint_ctx: &mut PaintCtx) {
+    fn paint(&self, render_ctx: &mut impl RenderContext) {
         // Create a color
         let stroke_color = Color::rgb8(0xff, 0xff, 0xff);
 
@@ -82,7 +82,7 @@ impl Paintable for Selection {
         let dashes = vec![2.0, 2.0];
         style.set_dash(dashes, 0.0);
 
-        paint_ctx.stroke_styled(self.shape(), &stroke_color, 1.0, &style);
+        render_ctx.stroke_styled(self.shape(), &stroke_color, 1.0, &style);
     }
 
     fn paint_size(&self) -> Option<Size> {

@@ -4,8 +4,8 @@ use std::borrow::Borrow;
 use std::sync::Arc;
 
 use crate::Paintable;
-use druid::kurbo::{Affine, BezPath};
-use druid::{Color, PaintCtx, Point, Rect, RenderContext, Size, Vec2};
+use druid::kurbo::BezPath;
+use druid::{Color, Point, Rect, RenderContext, Size, Vec2};
 
 use parser::{
     path::{Command, Position},
@@ -122,20 +122,8 @@ fn paint_node(node: &SvgNode, ctx: &mut impl RenderContext, brush: &DefaultBrush
 }
 
 impl Paintable for SvgImage {
-    fn paint(&self, paint_ctx: &mut PaintCtx) {
-        if let Some(rt) = self.paint_size() {
-            let size = paint_ctx.size();
-            let sw = size.width / rt.width;
-            let sh = size.height / rt.height;
-
-            let _ = paint_ctx.with_save(|ctx| {
-                ctx.transform(Affine::new([sw, 0.0, 0.0, sh, 0.0, 0.0]));
-                paint_node(&self.root, ctx, &self.default_brush);
-                Ok(())
-            });
-        } else {
-            paint_node(&self.root, paint_ctx.render_ctx, &self.default_brush);
-        }
+    fn paint(&self, render_ctx: &mut impl RenderContext) {
+        paint_node(&self.root, render_ctx, &self.default_brush);
     }
     fn paint_size(&self) -> Option<Size> {
         self.view_box.map(|rt| rt.size())

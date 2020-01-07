@@ -1,4 +1,4 @@
-use druid::{Data, PaintCtx, Point, Size, Vec2};
+use druid::{Data, Point, RenderContext, Size, Vec2};
 
 use crate::edit::{Edit, EditDesc};
 use crate::plane::Planes;
@@ -56,8 +56,8 @@ impl CanvasData {
 }
 
 impl Paintable for CanvasData {
-    fn paint(&self, paint_ctx: &mut PaintCtx) {
-        self.planes.paint(paint_ctx);
+    fn paint(&self, render_ctx: &mut impl RenderContext) {
+        self.planes.paint(render_ctx);
     }
 
     fn paint_size(&self) -> Option<Size> {
