@@ -1,4 +1,4 @@
-use druid::{Data, Event, EventCtx, MouseButton, Point};
+use druid::{Data, Event, EventCtx, MouseButton, Point, Vec2};
 use paintr::CanvasData;
 
 use super::Tool;
@@ -9,15 +9,23 @@ pub(crate) struct MoveTool;
 #[derive(Debug, Clone, Data)]
 pub(crate) struct MoveToolCtx {
     down: Point,
+    origin: Point,
+    curr: Point,
 }
 
 impl MoveToolCtx {
-    fn from_point(pt: Point) -> Option<Self> {
-        Some(Self { down: pt })
+    fn from_point(canvas: &mut Option<CanvasData>, pt: Point) -> Option<Self> {
+        let canvas = canvas.as_mut()?;
+        let origin = canvas.mov(Vec2::ZERO)?;
+        Some(Self { down: pt, origin, curr: origin })
     }
 
-    fn moved(&mut self, canvas: &mut Option<CanvasData>, _pt: Point) -> Option<()> {
-        let _canvas = canvas.as_mut()?;
+    fn moved(&mut self, canvas: &mut Option<CanvasData>, pt: Point) -> Option<()> {
+        let canvas = canvas.as_mut()?;
+        let target = (pt.to_vec2() - self.down.to_vec2()) + self.origin.to_vec2();
+        self.curr = canvas.mov(target - self.curr.to_vec2())?;
+        assert_eq!(self.curr, target.to_point());
+
         Some(())
     }
 }
@@ -36,7 +44,7 @@ impl Tool for MoveTool {
             Event::MouseDown(me) => {
                 if me.button == MouseButton::Left {
                     ctx.set_active(true);
-                    *tool_ctx = MoveToolCtx::from_point(me.pos);
+                    *tool_ctx = MoveToolCtx::from_point(data, me.pos);
                 }
             }
             Event::MouseMoved(me) => {

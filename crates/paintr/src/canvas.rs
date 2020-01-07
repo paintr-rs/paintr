@@ -1,4 +1,4 @@
-use druid::{Data, PaintCtx, Size};
+use druid::{Data, PaintCtx, Point, Size, Vec2};
 
 use crate::edit::{Edit, EditDesc};
 use crate::plane::Planes;
@@ -48,15 +48,16 @@ impl CanvasData {
             self.selection = Some(sel);
         }
     }
+
+    //FIXME: should be move layer, when we implemented layer
+    pub fn mov(&mut self, offset: Vec2) -> Option<Point> {
+        self.planes.mov(offset)
+    }
 }
 
 impl Paintable for CanvasData {
     fn paint(&self, paint_ctx: &mut PaintCtx) {
         self.planes.paint(paint_ctx);
-
-        if let Some(selection) = self.selection.as_ref() {
-            selection.paint(paint_ctx);
-        }
     }
 
     fn paint_size(&self) -> Option<Size> {

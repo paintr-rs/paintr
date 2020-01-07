@@ -1,5 +1,6 @@
 use crate::Paintable;
-use druid::{Data, PaintCtx, Size};
+use druid::kurbo::Affine;
+use druid::{Data, PaintCtx, Point, Rect, RenderContext, Size, Vec2};
 use image::{DynamicImage, GenericImage, GenericImageView};
 
 use std::sync::Arc;
@@ -49,10 +50,16 @@ impl Plane {
 #[derive(Debug, Clone, Copy, Data)]
 pub(crate) struct PlaneIndex(usize);
 
+#[derive(Debug, Clone)]
+struct PlaneData {
+    inner: Arc<Plane>,
+    transform: Vec2,
+}
+
 // FIXME: Move it to Canvas
 #[derive(Debug, Clone)]
 pub(crate) struct Planes {
-    planes: Vec<Arc<Plane>>,
+    planes: Vec<PlaneData>,
 }
 
 impl Eq for Planes {}
@@ -61,7 +68,7 @@ impl PartialEq for Planes {
         if self.planes.len() != other.planes.len() {
             return false;
         }
-        self.planes.iter().zip(other.planes.iter()).all(|(a, b)| Arc::ptr_eq(a, b))
+        self.planes.iter().zip(other.planes.iter()).all(|(a, b)| Arc::ptr_eq(&a.inner, &b.inner))
     }
 }
 impl Data for Planes {
@@ -76,8 +83,8 @@ impl Planes {
     }
 
     pub(crate) fn max_size(&self) -> Option<Size> {
-        return self.planes.iter().fold(None, |acc, plane| {
-            let size = plane.paint_size();
+        return self.planes.iter().fold(None, |acc, plane_data| {
+            let size = plane_data.inner.paint_size();
             match (acc, size) {
                 (None, _) => size,
                 (Some(_), None) => acc,
@@ -89,30 +96,57 @@ impl Planes {
     }
 
     pub(crate) fn push(&mut self, plane: impl Into<Plane>) -> PlaneIndex {
-        self.planes.push(Arc::new(plane.into()));
+        self.planes.push(PlaneData { inner: Arc::new(plane.into()), transform: Vec2::ZERO });
         PlaneIndex(self.planes.len() - 1)
     }
 
     pub(crate) fn merged(&self) -> Option<Arc<DynamicImage>> {
-        if self.planes.len() == 1 {
-            return Some(self.planes[0].image());
-        }
-
         let size = self.max_size()?;
         let mut img = image::DynamicImage::new_rgba8(size.width as u32, size.height as u32);
+        let full = Rect::from_origin_size(Point::ZERO, size);
 
         for plane in &self.planes {
-            img.copy_from(plane.image().as_ref(), 0, 0);
+            let rt = Rect::from_origin_size(plane.transform.to_point(), plane.inner.paint_size()?);
+            let rt = rt.intersect(full);
+
+            let origin = rt.origin().to_vec2();
+            let offset = origin - plane.transform;
+
+            let from = plane.inner.image();
+            let section = from.as_ref().view(
+                offset.x as u32,
+                offset.y as u32,
+                rt.size().width as u32,
+                rt.size().height as u32,
+            );
+
+            img.copy_from(&section, origin.x as u32, origin.y as u32);
         }
 
         Some(Arc::new(img))
+    }
+
+    pub(crate) fn mov(&mut self, offset: Vec2) -> Option<Point> {
+        let plane = self.planes.last_mut()?;
+        plane.transform += offset;
+        Some(plane.transform.to_point())
     }
 }
 
 impl Paintable for Planes {
     fn paint(&self, paint_ctx: &mut PaintCtx) {
         for plane in &self.planes {
-            plane.paint(paint_ctx);
+            let _ = paint_ctx.save();
+            paint_ctx.transform(Affine::translate(plane.transform));
+            plane.inner.paint(paint_ctx);
+            let _ = paint_ctx.restore();
+
+            // FIXME: paintable to use impl RenderContext
+            // paint_ctx.with_save(|ctx:&mut PaintCtx|{
+            //     ctx.transform(Affine::translate(plane.transform));
+            //     plane.inner.paint(paint_ctx);
+            //     Ok(())
+            // });
         }
     }
     fn paint_size(&self) -> Option<Size> {
