@@ -1,9 +1,7 @@
-use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, WidgetExt};
+use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, Svg, WidgetExt};
 use druid::{theme, Color, Env, UnitPoint, Widget};
 
-use crate::widgets::{
-    notif_bar::NotificationContainer, Canvas, ModalContainer, Named, RadioGroup, Svg,
-};
+use crate::widgets::{notif_bar::NotificationContainer, Canvas, ModalContainer, Named, RadioGroup};
 use crate::{AppState, ToolKind};
 
 use paintr::lens::LensMore;
@@ -32,12 +30,18 @@ fn toolbar() -> impl Widget<AppState> {
 
     let buttons: Vec<(Box<dyn Widget<_>>, _)> = vec![
         (
-            Box::new(Svg::new(move_tool_icon).fix_width(button_size).fix_height(button_size)),
+            Box::new(
+                Svg::new(move_tool_icon.parse().unwrap())
+                    .fix_width(button_size)
+                    .fix_height(button_size),
+            ),
             ToolKind::Move,
         ),
         (
             Box::new(
-                Svg::new(rect_marquee_tool_icon).fix_width(button_size).fix_height(button_size),
+                Svg::new(rect_marquee_tool_icon.parse().unwrap())
+                    .fix_width(button_size)
+                    .fix_height(button_size),
             ),
             ToolKind::Select,
         ),

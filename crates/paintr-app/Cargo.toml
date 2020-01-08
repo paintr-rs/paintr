@@ -9,6 +9,5 @@ edition = "2018"
 [dependencies]
 paintr = {path="../paintr"}
 
-# We use master for druid becuse druid is fast moving project
-druid = "0.4"
+druid = { version = "0.4", features = ["svg"] }
 image = "0.22.3"
