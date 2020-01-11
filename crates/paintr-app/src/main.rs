@@ -43,7 +43,7 @@ fn main() {
 
     AppLauncher::with_window(main_window)
         .delegate(Delegate)
-        .configure_env(|env| {
+        .configure_env(|env, _| {
             env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
             theme_ext::init(env);
         })
