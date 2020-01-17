@@ -1,6 +1,7 @@
 use super::canvas::CanvasData;
 use super::edit::{Edit, EditDesc};
 use druid::Vec2;
+use std::any::Any;
 use std::sync::Arc;
 
 pub struct Paste {
@@ -39,7 +40,16 @@ impl Edit<CanvasData> for Move {
     fn apply(&self, data: &mut CanvasData) {
         data.mov(self.offset);
     }
+
     fn description(&self) -> EditDesc {
         EditDesc::new("Move")
+    }
+
+    fn is_mergeable(&self, other: &dyn Any) -> bool {
+        if let Some(_other) = other.downcast_ref::<Self>() {
+            true
+        } else {
+            false
+        }
     }
 }

@@ -18,7 +18,7 @@ use druid::{
 };
 use paintr::{
     actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, Edit, EditDesc,
-    UndoHistory,
+    EditKind, UndoHistory,
 };
 
 use std::sync::Arc;
@@ -63,10 +63,10 @@ pub struct EditorState {
 }
 
 impl EditorState {
-    fn do_edit(&mut self, edit: impl Edit<CanvasData> + 'static) -> bool {
+    fn do_edit(&mut self, edit: impl Edit<CanvasData> + 'static, kind: EditKind) -> bool {
         let (history, canvas) = (&mut self.history, self.canvas.as_mut());
         if let Some(canvas) = canvas {
-            history.edit(canvas, edit);
+            history.edit(canvas, edit, kind);
             true
         } else {
             false
@@ -161,7 +161,7 @@ impl AppState {
             None => return Ok(false),
         };
         let img = to_rgba(img);
-        Ok(self.editor.do_edit(Paste::new(img)))
+        Ok(self.editor.do_edit(Paste::new(img), EditKind::NonMergeable))
     }
 
     fn image_file_name(&self) -> String {

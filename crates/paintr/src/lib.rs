@@ -20,7 +20,7 @@ mod selections;
 
 pub use canvas::CanvasData;
 pub use clipboard::{get_image_from_clipboard, put_image_to_clipboard, ClipboardError};
-pub use edit::{Edit, EditDesc, UndoHistory};
+pub use edit::{Edit, EditDesc, EditKind, UndoHistory};
 pub use paintable::Paintable;
 pub use selections::Selection;
 pub mod actions;

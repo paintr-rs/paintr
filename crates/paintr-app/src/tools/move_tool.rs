@@ -1,5 +1,5 @@
 use druid::{Data, Event, EventCtx, MouseButton, Point};
-use paintr::actions::Move;
+use paintr::{actions::Move, EditKind};
 
 use super::Tool;
 use crate::EditorState;
@@ -21,13 +21,13 @@ impl MoveToolCtx {
         Some(Self { down: pt, origin, curr: origin })
     }
 
-    fn moved(&mut self, editor: &mut EditorState, pt: Point) -> Option<()> {
+    fn moved(&mut self, editor: &mut EditorState, pt: Point, kind: EditKind) -> Option<()> {
         if editor.canvas.is_none() {
             return None;
         }
 
         let target = (pt.to_vec2() - self.down.to_vec2()) + self.origin.to_vec2();
-        editor.do_edit(Move::new(target - self.curr.to_vec2()));
+        editor.do_edit(Move::new(target - self.curr.to_vec2()), kind);
         self.curr = editor.canvas.as_ref()?.position()?;
         assert_eq!(self.curr, target.to_point());
 
@@ -54,7 +54,7 @@ impl Tool for MoveTool {
             }
             Event::MouseMoved(me) => {
                 if let Some(tool_ctx) = tool_ctx.as_mut() {
-                    if tool_ctx.moved(data, me.pos).is_some() {
+                    if tool_ctx.moved(data, me.pos, EditKind::Mergeable).is_some() {
                         ctx.invalidate();
                     }
                 }
@@ -62,7 +62,7 @@ impl Tool for MoveTool {
             Event::MouseUp(me) => {
                 if me.button == MouseButton::Left {
                     if let Some(mut tool_ctx) = tool_ctx.take() {
-                        if tool_ctx.moved(data, me.pos).is_some() {
+                        if tool_ctx.moved(data, me.pos, EditKind::NonMergeable).is_some() {
                             ctx.invalidate();
                         }
                     }
