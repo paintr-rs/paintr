@@ -32,7 +32,12 @@ fn main() {
     let app_state = AppState {
         notifications: Arc::new(Vec::new()),
         modal: None,
-        editor: EditorState { canvas: None, history: UndoHistory::new(), tool: ToolKind::Select },
+        editor: EditorState {
+            canvas: None,
+            history: UndoHistory::new(),
+            tool: ToolKind::Select,
+            is_editing: false,
+        },
     };
 
     let main_window = WindowDesc::new(ui_builder)
@@ -60,10 +65,13 @@ pub struct EditorState {
     canvas: Option<CanvasData>,
     history: UndoHistory<CanvasData>,
     tool: ToolKind,
+    is_editing: bool,
 }
 
 impl EditorState {
     fn do_edit(&mut self, edit: impl Edit<CanvasData> + 'static, kind: EditKind) -> bool {
+        self.is_editing = kind == EditKind::Mergeable;
+
         let (history, canvas) = (&mut self.history, self.canvas.as_mut());
         if let Some(canvas) = canvas {
             history.edit(canvas, edit, kind);
@@ -74,11 +82,18 @@ impl EditorState {
     }
 
     fn do_undo(&mut self) -> Option<EditDesc> {
+        if self.is_editing {
+            return None;
+        }
         let (history, canvas) = (&mut self.history, self.canvas.as_mut()?);
         history.undo(canvas)
     }
 
     fn do_redo(&mut self) -> Option<EditDesc> {
+        if self.is_editing {
+            return None;
+        }
+
         let (history, canvas) = (&mut self.history, self.canvas.as_mut()?);
         history.redo(canvas)
     }
