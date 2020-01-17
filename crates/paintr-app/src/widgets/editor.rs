@@ -19,7 +19,8 @@ impl Editor {
 
 impl Widget<EditorState> for Editor {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut EditorState, env: &Env) {
-        data.tool.event(ctx, event, &mut data.canvas, &mut self.tool_ctx);
+        let tool = data.tool;
+        tool.event(ctx, event, data, &mut self.tool_ctx);
 
         self.canvas.event(ctx, event, &mut data.canvas, env);
     }

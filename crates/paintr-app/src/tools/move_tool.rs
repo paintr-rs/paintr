@@ -2,6 +2,7 @@ use druid::{Data, Event, EventCtx, MouseButton, Point, Vec2};
 use paintr::CanvasData;
 
 use super::Tool;
+use crate::EditorState;
 
 #[derive(Debug)]
 pub(crate) struct MoveTool;
@@ -37,19 +38,19 @@ impl Tool for MoveTool {
         &self,
         ctx: &mut EventCtx,
         event: &Event,
-        data: &mut Option<CanvasData>,
+        data: &mut EditorState,
         tool_ctx: &mut Option<MoveToolCtx>,
     ) {
         match event {
             Event::MouseDown(me) => {
                 if me.button == MouseButton::Left {
                     ctx.set_active(true);
-                    *tool_ctx = MoveToolCtx::from_point(data, me.pos);
+                    *tool_ctx = MoveToolCtx::from_point(&mut data.canvas, me.pos);
                 }
             }
             Event::MouseMoved(me) => {
                 if let Some(tool_ctx) = tool_ctx.as_mut() {
-                    if tool_ctx.moved(data, me.pos).is_some() {
+                    if tool_ctx.moved(&mut data.canvas, me.pos).is_some() {
                         ctx.invalidate();
                     }
                 }
@@ -57,7 +58,7 @@ impl Tool for MoveTool {
             Event::MouseUp(me) => {
                 if me.button == MouseButton::Left {
                     if let Some(mut tool_ctx) = tool_ctx.take() {
-                        if tool_ctx.moved(data, me.pos).is_some() {
+                        if tool_ctx.moved(&mut data.canvas, me.pos).is_some() {
                             ctx.invalidate();
                         }
                     }

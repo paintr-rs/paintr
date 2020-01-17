@@ -55,7 +55,7 @@ struct Delegate;
 type Error = Box<dyn std::error::Error>;
 
 #[derive(Clone, Data, Lens)]
-struct EditorState {
+pub struct EditorState {
     canvas: Option<CanvasData>,
     history: UndoHistory<CanvasData>,
     tool: ToolKind,
