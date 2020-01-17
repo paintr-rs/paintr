@@ -3,8 +3,7 @@ mod select_tool;
 
 use druid::{Data, Event, EventCtx};
 use move_tool::MoveTool;
-use paintr::impl_from;
-use paintr::CanvasData;
+use paintr::{impl_from, CanvasData};
 use select_tool::SelectTool;
 
 pub trait Tool {
