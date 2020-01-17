@@ -46,7 +46,7 @@ pub struct NewFileSettings {
 
 fn make_label<T: Data + 'static>(text: impl Into<LabelText<T>>) -> impl Widget<T> {
     let row_padding = (10.0, 2.5);
-    Label::new(text).align(UnitPoint::BOTTOM_LEFT).padding(row_padding).fix_width(100.0)
+    Label::new(text).text_align(UnitPoint::BOTTOM_LEFT).padding(row_padding).fix_width(100.0)
 }
 
 macro_rules! dialog_lens {

@@ -61,7 +61,7 @@ pub(crate) fn ui_builder() -> impl Widget<AppState> {
 
     Flex::column().with_child(container, 1.0).with_child(
         Label::new(|data: &AppState, _env: &Env| data.status().unwrap_or_default())
-            .align(UnitPoint::RIGHT)
+            .text_align(UnitPoint::RIGHT)
             .padding((5.0, 3.0))
             .background(Color::rgb(0.5, 0.3, 0.5))
             .env_scope(|env, _| {

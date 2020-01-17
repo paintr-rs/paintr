@@ -185,7 +185,7 @@ impl Delegate {
     ) -> Result<(), Error> {
         match &cmd.selector {
             &commands::FILE_EXIT_ACTION => {
-                ctx.submit_command(druid::commands::CLOSE_WINDOW.into(), None);
+                ctx.submit_command(druid::commands::CLOSE_WINDOW, None);
             }
             &commands::FILE_NEW_ACTION => {
                 data.modal = Some(DialogData::new_file_settings());
@@ -263,7 +263,7 @@ impl AppDelegate<AppState> for Delegate {
         ctx: &mut DelegateCtx,
     ) -> Option<Event> {
         match event {
-            Event::Command(ref cmd) => {
+            Event::TargetedCommand(_, ref cmd) => {
                 if let Err(err) = self.handle_command(data, ctx, cmd) {
                     data.show_notification(Notification::error(err.to_string()));
                 }
