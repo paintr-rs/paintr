@@ -17,9 +17,10 @@ use druid::{
     LocalizedString, WindowDesc, WindowId,
 };
 use paintr::{
-    get_image_from_clipboard, put_image_to_clipboard, CanvasData, Edit, EditDesc, Paste,
+    actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, Edit, EditDesc,
     UndoHistory,
 };
+
 use std::sync::Arc;
 
 use dialogs::DialogData;
@@ -59,6 +60,28 @@ pub struct EditorState {
     canvas: Option<CanvasData>,
     history: UndoHistory<CanvasData>,
     tool: ToolKind,
+}
+
+impl EditorState {
+    fn do_edit(&mut self, edit: impl Edit<CanvasData> + 'static) -> bool {
+        let (history, canvas) = (&mut self.history, self.canvas.as_mut());
+        if let Some(canvas) = canvas {
+            history.edit(canvas, edit);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn do_undo(&mut self) -> Option<EditDesc> {
+        let (history, canvas) = (&mut self.history, self.canvas.as_mut()?);
+        history.undo(canvas)
+    }
+
+    fn do_redo(&mut self) -> Option<EditDesc> {
+        let (history, canvas) = (&mut self.history, self.canvas.as_mut()?);
+        history.redo(canvas)
+    }
 }
 
 #[derive(Clone, Data, Lens)]
@@ -131,26 +154,6 @@ impl AppState {
         Ok(true)
     }
 
-    fn do_edit(&mut self, edit: impl Edit<CanvasData> + 'static) -> bool {
-        let (history, canvas) = (&mut self.editor.history, self.editor.canvas.as_mut());
-        if let Some(canvas) = canvas {
-            history.edit(canvas, edit);
-            true
-        } else {
-            false
-        }
-    }
-
-    fn do_undo(&mut self) -> Option<EditDesc> {
-        let (history, canvas) = (&mut self.editor.history, self.editor.canvas.as_mut()?);
-        history.undo(canvas)
-    }
-
-    fn do_redo(&mut self) -> Option<EditDesc> {
-        let (history, canvas) = (&mut self.editor.history, self.editor.canvas.as_mut()?);
-        history.redo(canvas)
-    }
-
     fn do_paste(&mut self) -> Result<bool, Error> {
         let img = get_image_from_clipboard()?;
         let img = match img {
@@ -158,7 +161,7 @@ impl AppState {
             None => return Ok(false),
         };
         let img = to_rgba(img);
-        Ok(self.do_edit(Paste::new(img)))
+        Ok(self.editor.do_edit(Paste::new(img)))
     }
 
     fn image_file_name(&self) -> String {
@@ -223,12 +226,12 @@ impl Delegate {
                 data.update_menu(ctx);
             }
             &commands::EDIT_UNDO_ACTION => {
-                if let Some(desc) = data.do_undo() {
+                if let Some(desc) = data.editor.do_undo() {
                     data.show_notification(Notification::info(format!("Undo {}", desc)));
                 }
             }
             &commands::EDIT_REDO_ACTION => {
-                if let Some(desc) = data.do_redo() {
+                if let Some(desc) = data.editor.do_redo() {
                     data.show_notification(Notification::info(format!("Redo {}", desc)));
                 }
             }

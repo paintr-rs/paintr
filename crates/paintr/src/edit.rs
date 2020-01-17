@@ -1,5 +1,4 @@
 use druid::Data;
-
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
