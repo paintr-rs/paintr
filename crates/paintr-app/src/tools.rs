@@ -1,10 +1,10 @@
 mod move_tool;
 mod select_tool;
 
+use crate::EditorState;
 use druid::{Data, Event, EventCtx};
 use move_tool::MoveTool;
 use paintr::impl_from;
-use paintr::CanvasData;
 use select_tool::SelectTool;
 
 pub trait Tool {
@@ -14,7 +14,7 @@ pub trait Tool {
         &self,
         ctx: &mut EventCtx,
         event: &Event,
-        data: &mut Option<CanvasData>,
+        data: &mut EditorState,
         tool_ctx: &mut Option<Self::Context>,
     );
 }
@@ -53,7 +53,7 @@ impl ToolKind {
         &self,
         ctx: &mut EventCtx,
         event: &Event,
-        data: &mut Option<CanvasData>,
+        data: &mut EditorState,
         tool_ctx: &mut Option<ToolCtx>,
     ) {
         match self {

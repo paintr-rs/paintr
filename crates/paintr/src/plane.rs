@@ -131,6 +131,11 @@ impl Planes {
         plane.transform += offset;
         Some(plane.transform.to_point())
     }
+
+    pub(crate) fn position(&self) -> Option<Point> {
+        let plane = self.planes.last()?;
+        Some(plane.transform.to_point())
+    }
 }
 
 impl Paintable for Planes {

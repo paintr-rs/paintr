@@ -1,21 +1,19 @@
 use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, Svg, WidgetExt};
 use druid::{theme, Color, Env, UnitPoint, Widget};
 
-use crate::widgets::{notif_bar::NotificationContainer, Canvas, ModalContainer, Named, RadioGroup};
-use crate::{AppState, ToolKind};
-
-use paintr::lens::LensMore;
+use crate::widgets::{notif_bar::NotificationContainer, Editor, ModalContainer, Named, RadioGroup};
+use crate::{AppState, EditorState, ToolKind};
 
 fn canvas() -> impl Widget<AppState> {
-    let canvas_lens = AppState::canvas.tuple(AppState::tool);
+    let editor_lens = AppState::editor;
 
     Either::new(
-        |data: &AppState, &_| !data.canvas.is_some(),
+        |data: &AppState, &_| !data.editor.canvas.is_some(),
         Align::centered(Padding::new(10.0, Label::new(L!("paintr-front-page-welcome")))),
         Align::centered(Padding::new(
             10.0,
             Named::new(
-                Scroll::new(Canvas::new().lens(canvas_lens)),
+                Scroll::new(Editor::new().lens(editor_lens)),
                 |data: &AppState, _env: &_| data.image_file_name(),
             ),
         )),
@@ -47,7 +45,7 @@ fn toolbar() -> impl Widget<AppState> {
         ),
     ];
 
-    RadioGroup::new(buttons).lens(AppState::tool).padding(5.0)
+    RadioGroup::new(buttons).lens(EditorState::tool).lens(AppState::editor).padding(5.0)
 }
 
 pub(crate) fn ui_builder() -> impl Widget<AppState> {

@@ -1,6 +1,5 @@
 use druid::{Data, Point, RenderContext, Size, Vec2};
 
-use crate::edit::{Edit, EditDesc};
 use crate::plane::Planes;
 use crate::{Paintable, Selection};
 
@@ -9,9 +8,9 @@ use std::sync::Arc;
 // FIXME: Change name to Layer
 #[derive(Data, Clone)]
 pub struct CanvasData {
-    path: Arc<std::path::PathBuf>,
-    selection: Option<Selection>,
-    planes: Planes,
+    pub(crate) path: Arc<std::path::PathBuf>,
+    pub(crate) selection: Option<Selection>,
+    pub(crate) planes: Planes,
 }
 
 impl CanvasData {
@@ -50,8 +49,12 @@ impl CanvasData {
     }
 
     //FIXME: should be move layer, when we implemented layer
-    pub fn mov(&mut self, offset: Vec2) -> Option<Point> {
+    pub(crate) fn mov(&mut self, offset: Vec2) -> Option<Point> {
         self.planes.mov(offset)
+    }
+
+    pub fn position(&self) -> Option<Point> {
+        self.planes.position()
     }
 }
 
@@ -62,26 +65,5 @@ impl Paintable for CanvasData {
 
     fn paint_size(&self) -> Option<Size> {
         self.planes.paint_size()
-    }
-}
-
-pub struct Paste {
-    img: image::DynamicImage,
-}
-
-impl Paste {
-    pub fn new(img: image::RgbaImage) -> Paste {
-        Paste { img: image::DynamicImage::ImageRgba8(img) }
-    }
-}
-
-#[must_use]
-impl Edit<CanvasData> for Paste {
-    fn apply(&self, data: &mut CanvasData) {
-        data.planes.push(Arc::new(self.img.clone()));
-    }
-
-    fn description(&self) -> EditDesc {
-        EditDesc::new("Paste")
     }
 }

@@ -1,5 +1,5 @@
 use druid::Data;
-
+use std::any::Any;
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
@@ -27,6 +27,11 @@ pub trait Edit<T: Data> {
         old
     }
 
+    // FIXME: I dont't like using Any, but let's review it later
+    fn is_mergeable(&self, _other: &dyn Any) -> bool {
+        false
+    }
+
     fn description(&self) -> EditDesc;
 }
 
@@ -45,15 +50,22 @@ impl<T: Data> Data for UndoHistory<T> {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum EditKind {
+    NonMergeable,
+    Mergeable,
+}
+
 #[derive(Clone)]
 struct UndoState<T: Data> {
     old: T,
+    kind: EditKind,
     edit: Arc<dyn Edit<T>>,
 }
 
 impl<T: Data> UndoState<T> {
-    fn new(old: T, edit: Arc<dyn Edit<T>>) -> UndoState<T> {
-        UndoState { old, edit }
+    fn new(old: T, edit: Arc<dyn Edit<T>>, kind: EditKind) -> UndoState<T> {
+        UndoState { old, edit, kind }
     }
 
     fn undo(self, data: &mut T) -> Arc<dyn Edit<T>> {
@@ -64,9 +76,19 @@ impl<T: Data> UndoState<T> {
 }
 
 impl<T: Data> UndoHistory<T> {
-    pub fn edit(&mut self, data: &mut T, edit: impl Edit<T> + 'static) {
+    /// Add an edit on the undo stack and apply this edit
+    pub fn edit(&mut self, data: &mut T, edit: impl Edit<T> + 'static, kind: EditKind) {
         let old = edit.execute(data);
-        self.undos.push(UndoState::new(old, Arc::new(edit)));
+        if let Some(last) = self.undos.last_mut() {
+            if last.kind == EditKind::Mergeable && last.edit.is_mergeable(&edit) {
+                last.edit = Arc::new(edit);
+                last.kind = kind;
+                self.redos.clear();
+                return;
+            }
+        }
+
+        self.undos.push(UndoState::new(old, Arc::new(edit), kind));
         self.redos.clear();
     }
 
@@ -85,7 +107,7 @@ impl<T: Data> UndoHistory<T> {
         let edit = self.redos.pop()?;
         let desc = edit.description();
         let old = edit.execute(data);
-        self.undos.push(UndoState::new(old, edit));
+        self.undos.push(UndoState::new(old, edit, EditKind::NonMergeable));
         Some(desc)
     }
 }
