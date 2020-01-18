@@ -7,8 +7,8 @@ use move_tool::MoveTool;
 use paintr::impl_from;
 use select_tool::SelectTool;
 
-pub trait Tool {
-    type Context;
+pub(crate) trait Tool {
+    type Context: FromToolCtx + Into<ToolCtx>;
 
     fn event(
         &self,
@@ -17,6 +17,18 @@ pub trait Tool {
         data: &mut EditorState,
         tool_ctx: &mut Option<Self::Context>,
     );
+
+    fn do_event(
+        &self,
+        tctx: &mut Option<ToolCtx>,
+        ctx: &mut EventCtx,
+        event: &Event,
+        data: &mut EditorState,
+    ) {
+        let mut tool_ctx = tctx.take().and_then(|it| Self::Context::from_ctx(it));
+        self.event(ctx, event, data, &mut tool_ctx);
+        *tctx = tool_ctx.map(|it| it.into());
+    }
 }
 
 #[derive(Debug, Clone, Data, PartialEq, Eq, Copy)]
@@ -25,27 +37,44 @@ pub(crate) enum ToolKind {
     Select,
 }
 
-#[derive(Debug, Clone, Data)]
-pub(crate) enum ToolCtx {
-    Move(<MoveTool as Tool>::Context),
-    Select(<SelectTool as Tool>::Context),
+macro_rules! impl_tool_ctx {
+    ($($tool:ident => $kind:ident),*) => {
+        #[derive(Debug, Clone, Data)]
+        pub(crate) enum ToolCtx {
+            $(
+                $kind(<$tool as Tool>::Context)
+            ),*
+        }
+
+        impl_from! {
+            ToolCtx : [
+                $(
+                    <$tool as Tool>::Context => $kind
+                ),*
+            ]
+        }
+
+        $(
+        impl FromToolCtx for <$tool as Tool>::Context {
+            fn from_ctx(ctx: ToolCtx) -> Option<Self> {
+                match ctx {
+                    ToolCtx::$kind(it) => Some(it),
+                    _ => None,
+                }
+            }
+        })*
+    }
 }
 
-impl_from! {
-    ToolCtx : [
-        <SelectTool as Tool>::Context => Select,
-        <MoveTool as Tool>::Context => Move
-    ]
-
+pub(crate) trait FromToolCtx {
+    fn from_ctx(ctx: ToolCtx) -> Option<Self>
+    where
+        Self: Sized;
 }
 
-macro_rules! downcast {
-    ($ctx:expr, $id:ident) => {
-        $ctx.take().and_then(|ctx| match ctx {
-            ToolCtx::$id(it) => Some(it),
-            _ => None,
-        })
-    };
+impl_tool_ctx! {
+    MoveTool => Move,
+    SelectTool => Select
 }
 
 impl ToolKind {
@@ -57,16 +86,8 @@ impl ToolKind {
         tool_ctx: &mut Option<ToolCtx>,
     ) {
         match self {
-            ToolKind::Move => {
-                let mut new_tool_ctx = downcast!(tool_ctx, Move);
-                MoveTool.event(ctx, event, data, &mut new_tool_ctx);
-                *tool_ctx = new_tool_ctx.map(|it| it.into());
-            }
-            ToolKind::Select => {
-                let mut new_tool_ctx = downcast!(tool_ctx, Select);
-                SelectTool.event(ctx, event, data, &mut new_tool_ctx);
-                *tool_ctx = new_tool_ctx.map(|it| it.into());
-            }
+            ToolKind::Move => MoveTool.do_event(tool_ctx, ctx, event, data),
+            ToolKind::Select => SelectTool.do_event(tool_ctx, ctx, event, data),
         }
     }
 }
