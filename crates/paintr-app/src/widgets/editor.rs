@@ -1,7 +1,7 @@
 use druid::{BoxConstraints, Env, Event, EventCtx, LayoutCtx, PaintCtx, Size, UpdateCtx, Widget};
 
 use super::canvas::Canvas;
-use crate::tools::{ToolCtx, ToolKind};
+use crate::tools::ToolCtx;
 use crate::EditorState;
 use paintr::Paintable;
 
@@ -49,10 +49,8 @@ impl Widget<EditorState> for Editor {
         self.canvas.paint(paint_ctx, &data.canvas, env);
 
         if let Some(canvas) = &data.canvas {
-            if data.tool == ToolKind::Select {
-                if let Some(selection) = canvas.selection().as_ref() {
-                    selection.paint(paint_ctx.render_ctx);
-                }
+            if let Some(selection) = canvas.selection().as_ref() {
+                selection.paint(paint_ctx.render_ctx);
             }
         }
     }

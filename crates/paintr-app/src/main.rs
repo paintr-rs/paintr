@@ -158,7 +158,7 @@ impl AppState {
             .editor
             .canvas
             .as_ref()
-            .and_then(|canvas| canvas.selection().map(|sel| sel.copy_image(canvas.image())));
+            .and_then(|canvas| canvas.selection().map(|sel| sel.copy_image(canvas.merged())));
 
         let img = match img.flatten() {
             None => return Ok(false),

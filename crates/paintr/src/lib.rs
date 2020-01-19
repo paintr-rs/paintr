@@ -14,6 +14,7 @@ macro_rules! impl_from {
 mod canvas;
 mod clipboard;
 mod edit;
+mod image_utils;
 mod paintable;
 mod plane;
 mod selections;

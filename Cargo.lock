@@ -1060,6 +1060,7 @@ dependencies = [
  "druid 0.4.1 (git+https://github.com/edwin0cheng/druid?branch=dev)",
  "image 0.22.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "imageproc 0.19.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "svg 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

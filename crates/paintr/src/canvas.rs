@@ -1,8 +1,9 @@
+use druid::kurbo::Affine;
 use druid::{Data, Point, RenderContext, Size, Vec2};
 
+use crate::image_utils;
 use crate::plane::Planes;
 use crate::{Paintable, Selection};
-
 use std::sync::Arc;
 
 // FIXME: Change name to Layer
@@ -11,13 +12,24 @@ pub struct CanvasData {
     pub(crate) path: Arc<std::path::PathBuf>,
     pub(crate) selection: Option<Selection>,
     pub(crate) planes: Planes,
+    pub(crate) transform: Vec2,
+    pub(crate) size: Size,
 }
 
 impl CanvasData {
     pub fn new(path: impl Into<std::path::PathBuf>, img: image::RgbaImage) -> CanvasData {
         let mut planes = Planes::new();
-        planes.push(Arc::new(image::ImageRgba8(img)));
-        CanvasData { selection: None, planes, path: Arc::new(path.into()) }
+        let img = image::ImageRgba8(img);
+        let size = img.paint_size().unwrap();
+        planes.push(Arc::new(img));
+
+        CanvasData {
+            selection: None,
+            planes,
+            path: Arc::new(path.into()),
+            transform: Vec2::default(),
+            size,
+        }
     }
 
     pub fn path(&self) -> &std::path::Path {
@@ -25,7 +37,7 @@ impl CanvasData {
     }
 
     pub fn save(&mut self, path: &std::path::Path) -> Result<(), std::io::Error> {
-        let img = self.image();
+        let img = self.merged();
         img.save(path)?;
         self.path = Arc::new(path.into());
         Ok(())
@@ -35,8 +47,17 @@ impl CanvasData {
         self.selection.as_ref()
     }
 
-    pub fn image(&self) -> Arc<image::DynamicImage> {
-        self.planes.merged().expect("There is at least plane in Canvas")
+    pub fn merged(&self) -> Arc<image::DynamicImage> {
+        let img = self.planes.merged().expect("There is at least plane in Canvas");
+        if self.transform == Vec2::ZERO {
+            return img;
+        }
+        // Create partial image based on offset and size
+        let mut output =
+            image::DynamicImage::new_rgba8(self.size.width as u32, self.size.height as u32);
+        image_utils::merge_image(&mut output, &img, self.transform);
+
+        Arc::new(output)
     }
 
     pub fn select(&mut self, sel: impl Into<Selection>) {
@@ -48,22 +69,39 @@ impl CanvasData {
         }
     }
 
-    //FIXME: should be move layer, when we implemented layer
-    pub(crate) fn mov(&mut self, offset: Vec2) -> Option<Point> {
-        self.planes.mov(offset)
+    pub(crate) fn paste(&mut self, img: Arc<image::DynamicImage>) {
+        self.planes.push(img);
+
+        // FIXME: we don't need to mov the pasted image if we are using layer.
+        self.planes.mov(-self.transform);
     }
 
-    pub fn position(&self) -> Option<Point> {
-        self.planes.position()
+    //FIXME: should be move layer, when we implemented layer
+    pub(crate) fn mov(&mut self, offset: Vec2) {
+        self.transform += offset;
+
+        if let Some(selection) = self.selection() {
+            self.selection = Some(selection.transform(offset));
+        }
+    }
+
+    pub fn position(&self) -> Point {
+        self.transform.to_point()
     }
 }
 
 impl Paintable for CanvasData {
     fn paint(&self, render_ctx: &mut impl RenderContext) {
-        self.planes.paint(render_ctx);
+        if let Err(err) = render_ctx.with_save(|ctx| {
+            ctx.transform(Affine::translate(self.transform));
+            self.planes.paint(ctx);
+            Ok(())
+        }) {
+            log::error!("Render context error {}", err);
+        }
     }
 
     fn paint_size(&self) -> Option<Size> {
-        self.planes.paint_size()
+        Some(self.size)
     }
 }
