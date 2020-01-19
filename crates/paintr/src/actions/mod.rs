@@ -45,8 +45,9 @@ impl Edit<CanvasData> for Move {
         EditDesc::new("Move")
     }
 
-    fn is_mergeable(&self, other: &dyn Any) -> bool {
-        if let Some(_other) = other.downcast_ref::<Self>() {
+    fn merge(&self, other: &mut dyn Any) -> bool {
+        if let Some(other) = other.downcast_mut::<Self>() {
+            other.offset += self.offset;
             true
         } else {
             false

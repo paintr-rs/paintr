@@ -28,7 +28,7 @@ pub trait Edit<T: Data> {
     }
 
     // FIXME: I dont't like using Any, but let's review it later
-    fn is_mergeable(&self, _other: &dyn Any) -> bool {
+    fn merge(&self, _other: &mut dyn Any) -> bool {
         false
     }
 
@@ -77,10 +77,10 @@ impl<T: Data> UndoState<T> {
 
 impl<T: Data> UndoHistory<T> {
     /// Add an edit on the undo stack and apply this edit
-    pub fn edit(&mut self, data: &mut T, edit: impl Edit<T> + 'static, kind: EditKind) {
+    pub fn edit(&mut self, data: &mut T, mut edit: impl Edit<T> + 'static, kind: EditKind) {
         let old = edit.execute(data);
         if let Some(last) = self.undos.last_mut() {
-            if last.kind == EditKind::Mergeable && last.edit.is_mergeable(&edit) {
+            if last.kind == EditKind::Mergeable && last.edit.merge(&mut edit) {
                 last.edit = Arc::new(edit);
                 last.kind = kind;
                 self.redos.clear();
