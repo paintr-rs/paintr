@@ -5,19 +5,19 @@ use std::any::Any;
 use std::sync::Arc;
 
 pub struct Paste {
-    img: image::DynamicImage,
+    img: Arc<image::DynamicImage>,
 }
 
 impl Paste {
     pub fn new(img: image::RgbaImage) -> Paste {
-        Paste { img: image::DynamicImage::ImageRgba8(img) }
+        Paste { img: Arc::new(image::DynamicImage::ImageRgba8(img)) }
     }
 }
 
 #[must_use]
 impl Edit<CanvasData> for Paste {
     fn apply(&self, data: &mut CanvasData) {
-        data.planes.push(Arc::new(self.img.clone()));
+        data.paste(self.img.clone());
     }
 
     fn description(&self) -> EditDesc {

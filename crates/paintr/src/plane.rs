@@ -1,7 +1,8 @@
+use crate::image_utils;
 use crate::Paintable;
 use druid::kurbo::Affine;
-use druid::{Data, Point, Rect, RenderContext, Size, Vec2};
-use image::{DynamicImage, GenericImage, GenericImageView};
+use druid::{Data, Point, RenderContext, Size, Vec2};
+use image::{DynamicImage, GenericImageView};
 
 use std::sync::Arc;
 
@@ -103,24 +104,9 @@ impl Planes {
     pub(crate) fn merged(&self) -> Option<Arc<DynamicImage>> {
         let size = self.max_size()?;
         let mut img = image::DynamicImage::new_rgba8(size.width as u32, size.height as u32);
-        let full = Rect::from_origin_size(Point::ZERO, size);
 
         for plane in &self.planes {
-            let rt = Rect::from_origin_size(plane.transform.to_point(), plane.inner.paint_size()?);
-            let rt = rt.intersect(full);
-
-            let origin = rt.origin().to_vec2();
-            let offset = origin - plane.transform;
-
-            let from = plane.inner.image();
-            let section = from.as_ref().view(
-                offset.x as u32,
-                offset.y as u32,
-                rt.size().width as u32,
-                rt.size().height as u32,
-            );
-
-            img.copy_from(&section, origin.x as u32, origin.y as u32);
+            image_utils::merge_image(&mut img, &plane.inner.image(), plane.transform);
         }
 
         Some(Arc::new(img))
@@ -129,11 +115,6 @@ impl Planes {
     pub(crate) fn mov(&mut self, offset: Vec2) -> Option<Point> {
         let plane = self.planes.last_mut()?;
         plane.transform += offset;
-        Some(plane.transform.to_point())
-    }
-
-    pub(crate) fn position(&self) -> Option<Point> {
-        let plane = self.planes.last()?;
         Some(plane.transform.to_point())
     }
 }

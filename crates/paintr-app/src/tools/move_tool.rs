@@ -17,7 +17,7 @@ pub(crate) struct MoveToolCtx {
 impl MoveToolCtx {
     fn from_point(editor: &mut EditorState, pt: Point) -> Option<Self> {
         let canvas = editor.canvas.as_mut()?;
-        let origin = canvas.position()?;
+        let origin = canvas.position();
         Some(Self { down: pt, origin, curr: origin })
     }
 
@@ -28,7 +28,7 @@ impl MoveToolCtx {
 
         let target = (pt.to_vec2() - self.down.to_vec2()) + self.origin.to_vec2();
         editor.do_edit(Move::new(target - self.curr.to_vec2()), kind);
-        self.curr = editor.canvas.as_ref()?.position()?;
+        self.curr = editor.canvas.as_ref()?.position();
         assert_eq!(self.curr, target.to_point());
 
         Some(())
