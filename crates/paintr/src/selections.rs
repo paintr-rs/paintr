@@ -63,6 +63,10 @@ impl Selection {
             Selection::Rect(rt) => rt.transform(offset).into(),
         }
     }
+
+    pub fn position(&self) -> Point {
+        self.shape().bounding_box().center()
+    }
 }
 
 impl Data for Selection {

@@ -77,9 +77,15 @@ impl CanvasData {
     }
 
     //FIXME: should be move layer, when we implemented layer
-    pub(crate) fn mov(&mut self, offset: Vec2) {
+    pub(crate) fn move_canvas(&mut self, offset: Vec2) {
         self.transform += offset;
 
+        if let Some(selection) = self.selection() {
+            self.selection = Some(selection.transform(offset));
+        }
+    }
+
+    pub(crate) fn move_selection(&mut self, offset: Vec2) {
         if let Some(selection) = self.selection() {
             self.selection = Some(selection.transform(offset));
         }
