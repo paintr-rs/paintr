@@ -10,7 +10,8 @@ mod rect;
 trait SelectionShape: Shape {
     fn size(&self) -> Size;
     fn description(&self) -> String;
-    fn copy_image(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>>;
+    fn copy_image(&self, img: Arc<DynamicImage>, mode: CopyMode) -> Option<Arc<DynamicImage>>;
+    fn cut_image(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>>;
     fn contains(&self, pt: Point) -> bool;
     fn transform(&self, offset: Vec2) -> Self;
     fn same(&self, other: &Self) -> bool;
@@ -27,6 +28,11 @@ impl_from! {
     ]
 }
 
+pub enum CopyMode {
+    Shrink,
+    Expand,
+}
+
 impl Selection {
     pub fn description(&self) -> String {
         match self {
@@ -34,15 +40,27 @@ impl Selection {
         }
     }
 
-    pub fn size(&self) -> Size {
+    fn size(&self) -> Size {
         match self {
             Selection::Rect(rt) => rt.size(),
         }
     }
 
-    pub fn copy_image(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>> {
+    pub fn area(&self) -> f64 {
         match self {
-            Selection::Rect(rect) => rect.copy_image(img),
+            Selection::Rect(rt) => rt.area(),
+        }
+    }
+
+    pub fn copy_image(&self, img: Arc<DynamicImage>, mode: CopyMode) -> Option<Arc<DynamicImage>> {
+        match self {
+            Selection::Rect(rect) => rect.copy_image(img, mode),
+        }
+    }
+
+    pub fn cut_image(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>> {
+        match self {
+            Selection::Rect(rect) => rect.cut_image(img),
         }
     }
 
@@ -62,6 +80,10 @@ impl Selection {
         match self {
             Selection::Rect(rt) => rt.transform(offset).into(),
         }
+    }
+
+    pub fn position(&self) -> Point {
+        self.shape().bounding_box().origin()
     }
 }
 

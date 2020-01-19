@@ -25,24 +25,54 @@ impl Edit<CanvasData> for Paste {
     }
 }
 
-pub struct Move {
+pub struct MoveCanvas {
     offset: Vec2,
 }
 
-impl Move {
-    pub fn new(offset: Vec2) -> Move {
-        Move { offset }
+impl MoveCanvas {
+    pub fn new(offset: Vec2) -> MoveCanvas {
+        MoveCanvas { offset }
     }
 }
 
 #[must_use]
-impl Edit<CanvasData> for Move {
+impl Edit<CanvasData> for MoveCanvas {
     fn apply(&self, data: &mut CanvasData) {
-        data.mov(self.offset);
+        data.move_canvas(self.offset);
     }
 
     fn description(&self) -> EditDesc {
         EditDesc::new("Move")
+    }
+
+    fn merge(&self, other: &mut dyn Any) -> bool {
+        if let Some(other) = other.downcast_mut::<Self>() {
+            other.offset += self.offset;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+pub struct MoveSelection {
+    offset: Vec2,
+}
+
+impl MoveSelection {
+    pub fn new(offset: Vec2) -> MoveSelection {
+        MoveSelection { offset }
+    }
+}
+
+#[must_use]
+impl Edit<CanvasData> for MoveSelection {
+    fn apply(&self, data: &mut CanvasData) {
+        data.move_selection(self.offset);
+    }
+
+    fn description(&self) -> EditDesc {
+        EditDesc::new("Move Selection")
     }
 
     fn merge(&self, other: &mut dyn Any) -> bool {
