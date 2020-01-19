@@ -1,5 +1,5 @@
 use crate::image_utils;
-use crate::Paintable;
+use crate::{CopyMode, Paintable, Selection};
 use druid::kurbo::Affine;
 use druid::{Data, Point, RenderContext, Size, Vec2};
 use image::{DynamicImage, GenericImageView};
@@ -116,6 +116,31 @@ impl Planes {
         let plane = self.planes.last_mut()?;
         plane.transform += offset;
         Some(plane.transform.to_point())
+    }
+
+    pub(crate) fn move_with_index(&mut self, idx: PlaneIndex, offset: Vec2) {
+        self.planes[idx.0].transform += offset;
+    }
+
+    pub(crate) fn bind_selection(&mut self, sel: &Selection) -> PlaneIndex {
+        let merged = self.merged().expect("Expect at least one plane exists");
+        let cutout =
+            sel.copy_image(merged, CopyMode::Expand).expect("Fail to copy image from selection");
+
+        // TODO: Cut out all other planes
+        for plane in &mut self.planes {
+            let target = sel.transform(plane.transform);
+            let img = plane.inner.image();
+            if let Some(it) = target.cut_image(img) {
+                plane.inner = Arc::new(it.into());
+            }
+        }
+
+        self.planes.push(PlaneData {
+            inner: Arc::new(cutout.into()),
+            transform: sel.position().to_vec2(),
+        });
+        PlaneIndex(self.planes.len() - 1)
     }
 }
 

@@ -19,7 +19,7 @@ impl Paintable for DynamicImage {
         render_ctx.draw_image(
             &image,
             Rect::from_origin_size(Point::ORIGIN, self.paint_size().unwrap()),
-            InterpolationMode::NearestNeighbor,
+            InterpolationMode::Bilinear,
         );
     }
 

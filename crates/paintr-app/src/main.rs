@@ -17,8 +17,8 @@ use druid::{
     LocalizedString, WindowDesc, WindowId,
 };
 use paintr::{
-    actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, Edit, EditDesc,
-    EditKind, UndoHistory,
+    actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, CopyMode, Edit,
+    EditDesc, EditKind, UndoHistory,
 };
 
 use std::sync::Arc;
@@ -154,11 +154,9 @@ impl AppState {
     }
 
     fn do_copy(&mut self) -> Result<bool, Error> {
-        let img = self
-            .editor
-            .canvas
-            .as_ref()
-            .and_then(|canvas| canvas.selection().map(|sel| sel.copy_image(canvas.merged())));
+        let img = self.editor.canvas.as_ref().and_then(|canvas| {
+            canvas.selection().map(|sel| sel.copy_image(canvas.merged(), CopyMode::Shrink))
+        });
 
         let img = match img.flatten() {
             None => return Ok(false),

@@ -23,7 +23,7 @@ pub use canvas::CanvasData;
 pub use clipboard::{get_image_from_clipboard, put_image_to_clipboard, ClipboardError};
 pub use edit::{Edit, EditDesc, EditKind, UndoHistory};
 pub use paintable::Paintable;
-pub use selections::Selection;
+pub use selections::{CopyMode, Selection};
 pub mod actions;
 
 pub mod lens;
