@@ -23,9 +23,8 @@ pub struct CanvasData {
 }
 
 impl CanvasData {
-    pub fn new(path: impl Into<std::path::PathBuf>, img: image::RgbaImage) -> CanvasData {
+    pub fn new(path: impl Into<std::path::PathBuf>, img: image::DynamicImage) -> CanvasData {
         let mut planes = Planes::new();
-        let img = image::ImageRgba8(img);
         let size = img.paint_size().unwrap();
         planes.push(Arc::new(img));
 

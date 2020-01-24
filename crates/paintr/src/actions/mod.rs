@@ -9,8 +9,8 @@ pub struct Paste {
 }
 
 impl Paste {
-    pub fn new(img: image::RgbaImage) -> Paste {
-        Paste { img: Arc::new(image::DynamicImage::ImageRgba8(img)) }
+    pub fn new(img: image::DynamicImage) -> Paste {
+        Paste { img: Arc::new(img) }
     }
 }
 

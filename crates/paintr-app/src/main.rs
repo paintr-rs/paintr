@@ -108,11 +108,11 @@ struct AppState {
 
 const NEW_FILE_NAME: &str = "Untitled";
 
-fn to_rgba(img: image::DynamicImage) -> image::RgbaImage {
-    match img {
+fn to_rgba(img: image::DynamicImage) -> image::DynamicImage {
+    image::DynamicImage::ImageRgba8(match img {
         image::DynamicImage::ImageRgba8(img) => img,
         _ => img.to_rgba(),
-    }
+    })
 }
 
 impl AppState {
@@ -143,7 +143,8 @@ impl AppState {
             image::Rgba([0xff_u8, 0xff_u8, 0xff_u8, 0xff_u8])
         });
 
-        self.editor.canvas = Some(CanvasData::new(NEW_FILE_NAME, img));
+        self.editor.canvas =
+            Some(CanvasData::new(NEW_FILE_NAME, image::DynamicImage::ImageRgba8(img)));
         Ok(())
     }
 
