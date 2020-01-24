@@ -1,7 +1,7 @@
 use crate::image_utils;
 use crate::{CopyMode, Paintable, Selection};
 use druid::kurbo::Affine;
-use druid::{Data, Point, RenderContext, Size, Vec2};
+use druid::{Data, RenderContext, Size, Vec2};
 use image::{DynamicImage, GenericImageView};
 
 use std::sync::Arc;
@@ -103,7 +103,7 @@ impl Planes {
 
     pub(crate) fn merged(&self) -> Option<Arc<DynamicImage>> {
         let size = self.max_size()?;
-        let mut img = image::DynamicImage::new_rgba8(size.width as u32, size.height as u32);
+        let mut img = image_utils::transparent_image(size.width as u32, size.height as u32);
 
         for plane in &self.planes {
             image_utils::merge_image(&mut img, &plane.inner.image(), plane.transform);
@@ -112,26 +112,19 @@ impl Planes {
         Some(Arc::new(img))
     }
 
-    pub(crate) fn mov(&mut self, offset: Vec2) -> Option<Point> {
-        let plane = self.planes.last_mut()?;
-        plane.transform += offset;
-        Some(plane.transform.to_point())
-    }
-
     pub(crate) fn move_with_index(&mut self, idx: PlaneIndex, offset: Vec2) {
         self.planes[idx.0].transform += offset;
     }
 
     pub(crate) fn bind_selection(&mut self, sel: &Selection) -> PlaneIndex {
         let merged = self.merged().expect("Expect at least one plane exists");
-        let cutout =
-            sel.copy_image(merged, CopyMode::Expand).expect("Fail to copy image from selection");
+        let cutout = sel.copy(merged, CopyMode::Expand).expect("Fail to copy image from selection");
 
         // TODO: Cut out all other planes
         for plane in &mut self.planes {
             let target = sel.transform(plane.transform);
             let img = plane.inner.image();
-            if let Some(it) = target.cut_image(img) {
+            if let Some(it) = target.cutout(img) {
                 plane.inner = Arc::new(it.into());
             }
         }

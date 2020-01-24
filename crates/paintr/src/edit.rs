@@ -111,3 +111,8 @@ impl<T: Data> UndoHistory<T> {
         Some(desc)
     }
 }
+
+#[cfg(test)]
+mod test {
+    // FIXME: Add tests for UndoHistory
+}

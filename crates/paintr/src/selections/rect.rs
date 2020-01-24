@@ -1,3 +1,4 @@
+use crate::image_utils;
 use druid::{Point, Rect, Size, Vec2};
 use image::{DynamicImage, GenericImage, GenericImageView};
 use imageproc::rect::Rect as ImRect;
@@ -20,8 +21,7 @@ impl SelectionShape for Rect {
         self.size()
     }
 
-    fn copy_image(&self, img: Arc<DynamicImage>, mode: CopyMode) -> Option<Arc<DynamicImage>> {
-        // FIXME: Is bounding a best solution here?
+    fn copy(&self, img: Arc<DynamicImage>, mode: CopyMode) -> Option<Arc<DynamicImage>> {
         let rect = intersect(*self, &img)?;
 
         let (x, y) = rect.origin().into();
@@ -36,7 +36,7 @@ impl SelectionShape for Rect {
                     return Some(Arc::new(DynamicImage::ImageRgba8(new_img)));
                 }
                 let mut output =
-                    image::DynamicImage::new_rgba8(self.width() as u32, self.height() as u32);
+                    image_utils::transparent_image(self.width() as u32, self.height() as u32);
                 let pos = rect.origin() - self.origin();
                 output.copy_from(&new_img, pos.x as u32, pos.y as u32);
 
@@ -45,7 +45,7 @@ impl SelectionShape for Rect {
         }
     }
 
-    fn cut_image(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>> {
+    fn cutout(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>> {
         let rect = intersect(*self, &img)?;
 
         let rect = ImRect::at(rect.origin().x as i32, rect.origin().y as i32)
@@ -55,7 +55,7 @@ impl SelectionShape for Rect {
         let img = imageproc::drawing::draw_filled_rect(
             img.as_ref(),
             rect,
-            image::Rgba([0u8, 0u8, 0u8, 0u8]),
+            image_utils::colors::TRANSPARENT,
         );
 
         Some(Arc::new(DynamicImage::ImageRgba8(img)))
@@ -84,4 +84,39 @@ fn intersect(rt: Rect, img: &DynamicImage) -> Option<Rect> {
     }
 
     Some(rect)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::image_utils::{
+        colors::{TRANSPARENT, WHITE},
+        make_color_img,
+    };
+    use druid::Rect;
+    use image::GenericImageView;
+
+    #[test]
+    fn rect_copy_should_works() {
+        let white = Arc::new(make_color_img(4, 4, WHITE));
+        let rt = Rect::from_origin_size((-1.0, -1.0), (3.0, 3.0));
+        let img = rt.copy(white.clone(), CopyMode::Shrink).unwrap();
+        assert_eq!(img.dimensions(), (2, 2));
+        assert_eq!(img.get_pixel(1, 1), WHITE);
+
+        let img = rt.copy(white, CopyMode::Expand).unwrap();
+        assert_eq!(img.dimensions(), (3, 3));
+        assert_eq!(img.get_pixel(1, 1), WHITE);
+        assert_eq!(img.get_pixel(0, 0), TRANSPARENT);
+    }
+
+    #[test]
+    fn rect_cutout_should_works() {
+        let white = Arc::new(make_color_img(4, 4, WHITE));
+        let rt = Rect::from_origin_size((-1.0, -1.0), (3.0, 3.0));
+        let img = rt.cutout(white).unwrap();
+        assert_eq!(img.dimensions(), (4, 4));
+        assert_eq!(img.get_pixel(3, 3), WHITE);
+        assert_eq!(img.get_pixel(1, 1), TRANSPARENT);
+    }
 }
