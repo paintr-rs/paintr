@@ -62,7 +62,7 @@ impl CanvasData {
         }
         // Create partial image based on offset and size
         let mut output =
-            image::DynamicImage::new_rgba8(self.size.width as u32, self.size.height as u32);
+            image_utils::transparent_image(self.size.width as u32, self.size.height as u32);
         image_utils::merge_image(&mut output, &img, self.transform);
 
         Arc::new(output)

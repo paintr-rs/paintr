@@ -10,8 +10,8 @@ mod rect;
 trait SelectionShape: Shape {
     fn size(&self) -> Size;
     fn description(&self) -> String;
-    fn copy_image(&self, img: Arc<DynamicImage>, mode: CopyMode) -> Option<Arc<DynamicImage>>;
-    fn cut_image(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>>;
+    fn copy(&self, img: Arc<DynamicImage>, mode: CopyMode) -> Option<Arc<DynamicImage>>;
+    fn cutout(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>>;
     fn contains(&self, pt: Point) -> bool;
     fn transform(&self, offset: Vec2) -> Self;
     fn same(&self, other: &Self) -> bool;
@@ -52,15 +52,15 @@ impl Selection {
         }
     }
 
-    pub fn copy_image(&self, img: Arc<DynamicImage>, mode: CopyMode) -> Option<Arc<DynamicImage>> {
+    pub fn copy(&self, img: Arc<DynamicImage>, mode: CopyMode) -> Option<Arc<DynamicImage>> {
         match self {
-            Selection::Rect(rect) => rect.copy_image(img, mode),
+            Selection::Rect(rect) => rect.copy(img, mode),
         }
     }
 
-    pub fn cut_image(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>> {
+    pub fn cutout(&self, img: Arc<DynamicImage>) -> Option<Arc<DynamicImage>> {
         match self {
-            Selection::Rect(rect) => rect.cut_image(img),
+            Selection::Rect(rect) => rect.cutout(img),
         }
     }
 

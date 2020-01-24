@@ -103,7 +103,7 @@ impl Planes {
 
     pub(crate) fn merged(&self) -> Option<Arc<DynamicImage>> {
         let size = self.max_size()?;
-        let mut img = image::DynamicImage::new_rgba8(size.width as u32, size.height as u32);
+        let mut img = image_utils::transparent_image(size.width as u32, size.height as u32);
 
         for plane in &self.planes {
             image_utils::merge_image(&mut img, &plane.inner.image(), plane.transform);
@@ -124,14 +124,13 @@ impl Planes {
 
     pub(crate) fn bind_selection(&mut self, sel: &Selection) -> PlaneIndex {
         let merged = self.merged().expect("Expect at least one plane exists");
-        let cutout =
-            sel.copy_image(merged, CopyMode::Expand).expect("Fail to copy image from selection");
+        let cutout = sel.copy(merged, CopyMode::Expand).expect("Fail to copy image from selection");
 
         // TODO: Cut out all other planes
         for plane in &mut self.planes {
             let target = sel.transform(plane.transform);
             let img = plane.inner.image();
-            if let Some(it) = target.cut_image(img) {
+            if let Some(it) = target.cutout(img) {
                 plane.inner = Arc::new(it.into());
             }
         }

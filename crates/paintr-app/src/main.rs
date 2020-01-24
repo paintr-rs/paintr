@@ -156,7 +156,7 @@ impl AppState {
 
     fn do_copy(&mut self) -> Result<bool, Error> {
         let img = self.editor.canvas.as_ref().and_then(|canvas| {
-            canvas.selection().map(|sel| sel.copy_image(canvas.merged(), CopyMode::Shrink))
+            canvas.selection().map(|sel| sel.copy(canvas.merged(), CopyMode::Shrink))
         });
 
         let img = match img.flatten() {
