@@ -78,10 +78,10 @@ impl CanvasData {
     }
 
     pub(crate) fn paste(&mut self, img: Arc<image::DynamicImage>) {
-        self.planes.push(img);
+        let idx = self.planes.push(img);
 
         // FIXME: we don't need to mov the pasted image if we are using layer.
-        self.planes.mov(-self.transform);
+        self.planes.move_with_index(idx, -self.transform);
     }
 
     //FIXME: should be move layer, when we implemented layer
@@ -137,5 +137,38 @@ impl Paintable for CanvasData {
 
     fn paint_size(&self) -> Option<Size> {
         Some(self.size)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::image_utils::{colors::*, make_color_img};
+    use crate::test_utils::canvas_fixture;
+    use image::GenericImageView;
+
+    #[test]
+    fn canvas_data_merged_should_works() {
+        let mut canvas = canvas_fixture(16, 16, WHITE);
+        let black = make_color_img(4, 4, BLACK);
+        canvas.paste(Arc::new(black));
+        let merged = canvas.merged();
+
+        assert_eq!(merged.get_pixel(0, 0), BLACK);
+        assert_eq!(merged.get_pixel(8, 8), WHITE);
+    }
+
+    #[test]
+    fn canvas_data_merged_should_works_with_moved() {
+        let mut canvas = canvas_fixture(16, 16, WHITE);
+        canvas.move_canvas(Vec2::new(2.0, 2.0));
+        let black = make_color_img(4, 4, BLACK);
+        canvas.paste(Arc::new(black));
+        let merged = canvas.merged();
+
+        assert_eq!(merged.get_pixel(0, 0), BLACK);
+        assert_eq!(merged.get_pixel(8, 8), WHITE);
+        assert_eq!(merged.get_pixel(0, 8), TRANSPARENT);
+        assert_eq!(merged.get_pixel(8, 0), TRANSPARENT);
     }
 }

@@ -1,7 +1,7 @@
 use crate::image_utils;
 use crate::{CopyMode, Paintable, Selection};
 use druid::kurbo::Affine;
-use druid::{Data, Point, RenderContext, Size, Vec2};
+use druid::{Data, RenderContext, Size, Vec2};
 use image::{DynamicImage, GenericImageView};
 
 use std::sync::Arc;
@@ -110,12 +110,6 @@ impl Planes {
         }
 
         Some(Arc::new(img))
-    }
-
-    pub(crate) fn mov(&mut self, offset: Vec2) -> Option<Point> {
-        let plane = self.planes.last_mut()?;
-        plane.transform += offset;
-        Some(plane.transform.to_point())
     }
 
     pub(crate) fn move_with_index(&mut self, idx: PlaneIndex, offset: Vec2) {

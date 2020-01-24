@@ -19,11 +19,15 @@ mod paintable;
 mod plane;
 mod selections;
 
+#[cfg(test)]
+mod test_utils;
+
 pub use canvas::CanvasData;
 pub use clipboard::{get_image_from_clipboard, put_image_to_clipboard, ClipboardError};
 pub use edit::{Edit, EditDesc, EditKind, UndoHistory};
 pub use paintable::Paintable;
 pub use selections::{CopyMode, Selection};
 pub mod actions;
+pub use image_utils::colors;
 
 pub mod lens;

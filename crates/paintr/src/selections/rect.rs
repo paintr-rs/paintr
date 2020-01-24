@@ -85,3 +85,38 @@ fn intersect(rt: Rect, img: &DynamicImage) -> Option<Rect> {
 
     Some(rect)
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::image_utils::{
+        colors::{TRANSPARENT, WHITE},
+        make_color_img,
+    };
+    use druid::Rect;
+    use image::GenericImageView;
+
+    #[test]
+    fn rect_copy_should_works() {
+        let white = Arc::new(make_color_img(4, 4, WHITE));
+        let rt = Rect::from_origin_size((-1.0, -1.0), (3.0, 3.0));
+        let img = rt.copy(white.clone(), CopyMode::Shrink).unwrap();
+        assert_eq!(img.dimensions(), (2, 2));
+        assert_eq!(img.get_pixel(1, 1), WHITE);
+
+        let img = rt.copy(white, CopyMode::Expand).unwrap();
+        assert_eq!(img.dimensions(), (3, 3));
+        assert_eq!(img.get_pixel(1, 1), WHITE);
+        assert_eq!(img.get_pixel(0, 0), TRANSPARENT);
+    }
+
+    #[test]
+    fn rect_cutout_should_works() {
+        let white = Arc::new(make_color_img(4, 4, WHITE));
+        let rt = Rect::from_origin_size((-1.0, -1.0), (3.0, 3.0));
+        let img = rt.cutout(white).unwrap();
+        assert_eq!(img.dimensions(), (4, 4));
+        assert_eq!(img.get_pixel(3, 3), WHITE);
+        assert_eq!(img.get_pixel(1, 1), TRANSPARENT);
+    }
+}

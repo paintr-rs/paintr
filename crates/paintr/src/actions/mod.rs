@@ -88,17 +88,13 @@ impl Edit<CanvasData> for MoveSelection {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::image_utils::{colors::TRANSPARENT, make_color_img};
+    use crate::image_utils::{
+        colors::{BLACK, TRANSPARENT, WHITE},
+        make_color_img,
+    };
+    use crate::test_utils::canvas_fixture;
     use druid::{Point, Rect};
-    use image::{GenericImageView, Rgba};
-
-    const BLACK: Rgba<u8> = Rgba([0x0u8, 0x0u8, 0x0u8, 0xFFu8]);
-    const WHITE: Rgba<u8> = Rgba([0xffu8, 0xf0u8, 0xffu8, 0xffu8]);
-
-    fn canvas_fixture(w: u32, h: u32, color: Rgba<u8>) -> CanvasData {
-        let img = make_color_img(w, h, color);
-        CanvasData::new("test-img", img)
-    }
+    use image::GenericImageView;
 
     #[test]
     fn paste_should_works() {
