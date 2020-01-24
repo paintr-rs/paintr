@@ -84,3 +84,60 @@ impl Edit<CanvasData> for MoveSelection {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::image_utils::{colors::TRANSPARENT, make_color_img};
+    use druid::{Point, Rect};
+    use image::{GenericImageView, Rgba};
+
+    const BLACK: Rgba<u8> = Rgba([0x0u8, 0x0u8, 0x0u8, 0xFFu8]);
+    const WHITE: Rgba<u8> = Rgba([0xffu8, 0xf0u8, 0xffu8, 0xffu8]);
+
+    fn canvas_fixture(w: u32, h: u32, color: Rgba<u8>) -> CanvasData {
+        let img = make_color_img(w, h, color);
+        CanvasData::new("test-img", img)
+    }
+
+    #[test]
+    fn paste_should_works() {
+        let mut canvas = canvas_fixture(16, 16, BLACK);
+
+        let white = make_color_img(4, 4, WHITE);
+        let action = Paste::new(white);
+        let old = action.execute(&mut canvas);
+        let img = old.merged();
+        assert_eq!(img.get_pixel(2, 2), BLACK);
+
+        let img = canvas.merged();
+        assert_eq!(img.get_pixel(2, 2), WHITE);
+    }
+
+    #[test]
+    fn move_canvas_should_works() {
+        let mut canvas = canvas_fixture(16, 16, BLACK);
+
+        let action = MoveCanvas::new(Vec2::new(4.0, 4.0));
+        let old = action.execute(&mut canvas);
+        let img = old.merged();
+        assert_eq!(img.get_pixel(2, 2), BLACK);
+
+        let img = canvas.merged();
+        assert_eq!(img.get_pixel(2, 2), TRANSPARENT);
+    }
+
+    #[test]
+    fn move_selection_should_works() {
+        let mut canvas = canvas_fixture(16, 16, BLACK);
+        canvas.select(Rect::from_origin_size(Point::ZERO, (2.0, 2.0)));
+
+        let action = MoveSelection::new(Vec2::new(4.0, 4.0));
+        let old = action.execute(&mut canvas);
+        let img = old.merged();
+        assert_eq!(img.get_pixel(2, 2), BLACK);
+
+        let img = canvas.merged();
+        assert_eq!(img.get_pixel(2, 2), TRANSPARENT);
+    }
+}
