@@ -51,7 +51,7 @@ mod windows {
     use std::io::Write;
 
     pub fn get_image_from_clipboard() -> Result<Option<image::DynamicImage>, ClipboardError> {
-        let clipboard = Application::clipboard();
+        let clipboard = Application::global().clipboard();
 
         let format_id = match clipboard.preferred_format(&["CF_DIBV5"]) {
             Some(id) => id,
@@ -65,13 +65,13 @@ mod windows {
 
         let mut bmp_buf = compute_bmp_header(&data)?;
         bmp_buf.append(&mut data);
-        Ok(Some(image::load(Cursor::new(bmp_buf), image::ImageFormat::BMP)?))
+        Ok(Some(image::load(Cursor::new(bmp_buf), image::ImageFormat::Bmp)?))
     }
 
     pub fn put_image_to_clipboard(img: &image::DynamicImage) -> Result<(), ClipboardError> {
-        let mut clipboard = Application::clipboard();
+        let mut clipboard = Application::global().clipboard();
         let mut data = vec![];
-        img.write_to(&mut data, image::ImageFormat::BMP)?;
+        img.write_to(&mut data, image::ImageFormat::Bmp)?;
 
         data.drain(0..FILE_HEADER_SIZE as usize);
         let data = upgrade_bmp_header(&mut data)?;
