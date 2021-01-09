@@ -4,9 +4,12 @@
 
 use std::marker::PhantomData;
 
-use druid::kurbo::{Point, Rect, Size};
 use druid::theme;
 use druid::widget::{Align, Flex, WidgetExt};
+use druid::{
+    kurbo::{Point, Rect, Size},
+    LifeCycle, LifeCycleCtx,
+};
 use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, RenderContext, UnitPoint,
     UpdateCtx, Widget, WidgetPod,
@@ -38,7 +41,6 @@ impl<T: Data + PartialEq + Copy + 'static> RadioGroup<T> {
                         env.set(PAINTR_TOGGLE_FOREGROND, color);
                     })
                     .padding(5.0),
-                0.0,
             );
         }
         col
@@ -60,11 +62,18 @@ impl<T: Data + PartialEq + 'static> Radio<T> {
 }
 
 impl<T: Data + PartialEq> Widget<T> for Radio<T> {
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        self.child.lifecycle(ctx, event, data, env);
+        if let LifeCycle::HotChanged(_) = event {
+            ctx.request_paint();
+        }
+    }
+
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, _env: &Env) {
         match event {
             Event::MouseDown(_) => {
                 ctx.set_active(true);
-                ctx.invalidate();
+                ctx.request_paint();
             }
             Event::MouseUp(_) => {
                 if ctx.is_active() {
@@ -72,18 +81,18 @@ impl<T: Data + PartialEq> Widget<T> for Radio<T> {
                     if ctx.is_hot() {
                         *data = self.variant.clone();
                     }
-                    ctx.invalidate();
+                    ctx.request_paint();
                 }
-            }
-            Event::HotChanged(_) => {
-                ctx.invalidate();
             }
             _ => (),
         }
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, _old_data: Option<&T>, _data: &T, _env: &Env) {
-        ctx.invalidate();
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+        self.child.update(ctx, data, env);
+        if !old_data.same(data) {
+            ctx.request_paint();
+        }
     }
 
     fn layout(
@@ -94,14 +103,22 @@ impl<T: Data + PartialEq> Widget<T> for Radio<T> {
         env: &Env,
     ) -> Size {
         let size = self.child.layout(layout_ctx, &bc, data, env);
-        self.child.set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
+        self.child.set_layout_rect(
+            layout_ctx,
+            data,
+            env,
+            Rect::from_origin_size(Point::ORIGIN, size),
+        );
         bc.constrain(size)
     }
 
     fn paint(&mut self, paint_ctx: &mut PaintCtx, data: &T, env: &Env) {
         let size = paint_ctx.size();
-        let border_color =
-            if paint_ctx.is_hot() { env.get(theme::BORDER_LIGHT) } else { env.get(theme::BORDER) };
+        let border_color = if paint_ctx.is_hot() {
+            env.get(theme::BORDER_LIGHT)
+        } else {
+            env.get(theme::BORDER_DARK)
+        };
 
         let rt = Rect::from_origin_size(Point::ORIGIN, size);
 
@@ -112,6 +129,6 @@ impl<T: Data + PartialEq> Widget<T> for Radio<T> {
         paint_ctx.stroke(rt, &border_color, 1.0);
 
         // Paint the text label
-        self.child.paint_with_offset(paint_ctx, data, env);
+        self.child.paint(paint_ctx, data, env);
     }
 }

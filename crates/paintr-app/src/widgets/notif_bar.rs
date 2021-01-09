@@ -2,11 +2,14 @@
 //!
 //! A widget represent a message box
 
-use druid::widget::{Align, Label, List, WidgetExt};
 use druid::{
     lens::{self, LensExt},
     BoxConstraints, Color, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, Point, Rect,
     RenderContext, Size, UnitPoint, UpdateCtx, Widget, WidgetPod,
+};
+use druid::{
+    widget::{Align, Label, List, WidgetExt},
+    LifeCycle, LifeCycleCtx,
 };
 
 use super::painter::Painter;
@@ -114,6 +117,11 @@ impl<T: Data, L: lens::Lens<T, NotificationsData>> NotificationContainer<T, L> {
 impl<T: Data, L: lens::Lens<T, NotificationsData> + Clone> Widget<T>
     for NotificationContainer<T, L>
 {
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        self.inner.lifecycle(ctx, event, data, env);
+        self.bars.lifecycle(ctx, event, data, env);
+    }
+
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         self.inner.event(ctx, event, data, env);
         self.bars.event(ctx, event, data, env);
@@ -144,35 +152,33 @@ impl<T: Data, L: lens::Lens<T, NotificationsData> + Clone> Widget<T>
         }
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: Option<&T>, data: &T, env: &Env) {
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
         self.inner.update(ctx, data, env);
         self.bars.update(ctx, old_data, data, env);
 
         let lens = self.snackbar_lens.clone();
 
-        if let Some(d) = old_data {
-            lens.with(d, |old| {
-                lens.with(data, |new| {
-                    if !new.same(old) {
-                        ctx.invalidate();
-                        self.sync_lifes(new);
-                    }
-                })
+        lens.with(old_data, |old| {
+            lens.with(data, |new| {
+                if !new.same(old) {
+                    ctx.request_paint();
+                    self.sync_lifes(new);
+                }
             })
-        }
+        });
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let size = self.bars.layout(ctx, &bc, data, env);
-        self.inner.set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
+        self.inner.set_layout_rect(ctx, data, env, Rect::from_origin_size(Point::ORIGIN, size));
 
         let size = self.inner.layout(ctx, &bc, data, env);
-        self.inner.set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
+        self.inner.set_layout_rect(ctx, data, env, Rect::from_origin_size(Point::ORIGIN, size));
         size
     }
 
     fn paint(&mut self, paint_ctx: &mut PaintCtx, data: &T, env: &Env) {
-        self.inner.paint_with_offset(paint_ctx, data, env);
+        self.inner.paint(paint_ctx, data, env);
 
         if self.snackbar_lens.get(data).len() > 0 {
             self.bars.paint(paint_ctx, data, env);

@@ -1,4 +1,6 @@
-use druid::{Command, FileDialogOptions, FileSpec, Selector};
+use druid::{Command, FileDialogOptions, FileSpec, Selector, Target};
+
+use crate::dialogs::NewFileSettings;
 const IMAGE_FILE_TYPE: FileSpec = FileSpec::new("Images", &["bmp", "png", "gif", "jpg", "jpeg"]);
 
 pub(crate) const FILE_EXIT_ACTION: Selector = Selector::new("menu-exit-action");
@@ -12,12 +14,13 @@ pub(crate) const EDIT_PASTE_ACTION: Selector = Selector::new("edit-paste-action"
 
 pub(crate) const ABOUT_TEST_ACTION: Selector = Selector::new("about-test-action");
 
-pub(crate) const NEW_IMAGE_ACTION: Selector = Selector::new("new-image-action");
+pub(crate) const NEW_IMAGE_ACTION: Selector<NewFileSettings> = Selector::new("new-image-action");
 
 pub(crate) fn file_open_command() -> Command {
     Command::new(
         druid::commands::SHOW_OPEN_PANEL,
         FileDialogOptions::new().allowed_types(vec![IMAGE_FILE_TYPE]),
+        Target::Auto,
     )
 }
 
@@ -25,5 +28,6 @@ pub(crate) fn file_save_as_command() -> Command {
     Command::new(
         druid::commands::SHOW_SAVE_PANEL,
         FileDialogOptions::new().allowed_types(vec![IMAGE_FILE_TYPE]),
+        Target::Auto,
     )
 }

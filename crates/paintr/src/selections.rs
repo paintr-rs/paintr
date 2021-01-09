@@ -90,7 +90,7 @@ impl Selection {
 impl Data for Selection {
     fn same(&self, other: &Self) -> bool {
         match (self, other) {
-            (Selection::Rect(a), Selection::Rect(b)) => a.same(b),
+            (Selection::Rect(a), Selection::Rect(b)) => a == b,
         }
     }
 }

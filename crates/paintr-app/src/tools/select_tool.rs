@@ -56,10 +56,10 @@ impl Tool for SelectTool {
                     *tool_ctx = SelectToolCtx::from_point(&mut data.canvas, me.pos);
                 }
             }
-            Event::MouseMoved(me) => {
+            Event::MouseMove(me) => {
                 if let Some(tool_ctx) = tool_ctx.as_mut() {
                     if tool_ctx.moved(&mut data.canvas, me.pos).is_some() {
-                        ctx.invalidate();
+                        ctx.request_paint();
                     }
                 }
             }
@@ -67,7 +67,7 @@ impl Tool for SelectTool {
                 if me.button == MouseButton::Left {
                     if let Some(mut tool_ctx) = tool_ctx.take() {
                         if tool_ctx.moved(&mut data.canvas, me.pos).is_some() {
-                            ctx.invalidate();
+                            ctx.request_paint();
                         }
                     }
                     ctx.set_active(false);

@@ -1,4 +1,7 @@
-use druid::{BoxConstraints, Env, Event, EventCtx, LayoutCtx, PaintCtx, Size, UpdateCtx, Widget};
+use druid::{
+    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
+    UpdateCtx, Widget,
+};
 
 use super::canvas::Canvas;
 use crate::tools::ToolCtx;
@@ -18,6 +21,15 @@ impl Editor {
 }
 
 impl Widget<EditorState> for Editor {
+    fn lifecycle(
+        &mut self,
+        _ctx: &mut LifeCycleCtx,
+        _event: &LifeCycle,
+        _data: &EditorState,
+        _env: &Env,
+    ) {
+    }
+
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut EditorState, env: &Env) {
         let tool = data.tool;
         tool.event(ctx, event, data, &mut self.tool_ctx);
@@ -28,11 +40,11 @@ impl Widget<EditorState> for Editor {
     fn update(
         &mut self,
         ctx: &mut UpdateCtx,
-        old_data: Option<&EditorState>,
+        old_data: &EditorState,
         data: &EditorState,
         env: &Env,
     ) {
-        self.canvas.update(ctx, old_data.as_ref().map(|it| &it.canvas), &data.canvas, env)
+        self.canvas.update(ctx, &old_data.canvas, &data.canvas, env)
     }
 
     fn layout(

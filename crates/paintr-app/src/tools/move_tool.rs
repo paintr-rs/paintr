@@ -83,10 +83,10 @@ impl Tool for MoveTool {
                     *tool_ctx = MoveToolCtx::from_point(data, me.pos);
                 }
             }
-            Event::MouseMoved(me) => {
+            Event::MouseMove(me) => {
                 if let Some(tool_ctx) = tool_ctx.as_mut() {
                     if tool_ctx.moved(data, me.pos, EditKind::Mergeable).is_some() {
-                        ctx.invalidate();
+                        ctx.request_paint();
                     }
                 }
             }
@@ -94,7 +94,7 @@ impl Tool for MoveTool {
                 if me.button == MouseButton::Left {
                     if let Some(mut tool_ctx) = tool_ctx.take() {
                         if tool_ctx.moved(data, me.pos, EditKind::NonMergeable).is_some() {
-                            ctx.invalidate();
+                            ctx.request_paint();
                         }
                     }
                     ctx.set_active(false);

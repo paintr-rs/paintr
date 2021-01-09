@@ -38,7 +38,9 @@ impl SelectionShape for Rect {
                 let mut output =
                     image_utils::transparent_image(self.width() as u32, self.height() as u32);
                 let pos = rect.origin() - self.origin();
-                output.copy_from(&new_img, pos.x as u32, pos.y as u32);
+                output
+                    .copy_from(&new_img, pos.x as u32, pos.y as u32)
+                    .expect("The size is invalid");
 
                 Some(Arc::new(output))
             }

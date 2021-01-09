@@ -1,5 +1,8 @@
-use druid::widget::{Align, Either, Flex, Label, Padding, Scroll, Svg, WidgetExt};
-use druid::{theme, Color, Env, UnitPoint, Widget};
+use druid::{theme, Color, Env, Widget};
+use druid::{
+    widget::{Align, Either, Flex, Label, Padding, Scroll, Svg, WidgetExt},
+    TextAlignment,
+};
 
 use crate::widgets::{notif_bar::NotificationContainer, Editor, ModalContainer, Named, RadioGroup};
 use crate::{AppState, EditorState, ToolKind};
@@ -49,7 +52,7 @@ fn toolbar() -> impl Widget<AppState> {
 }
 
 pub(crate) fn ui_builder() -> impl Widget<AppState> {
-    let content = Flex::row().with_child(toolbar(), 0.0).with_child(canvas(), 1.0);
+    let content = Flex::row().with_child(toolbar()).with_flex_child(canvas(), 1.0);
 
     let container = ModalContainer::new(
         NotificationContainer::new(content, AppState::notifications),
@@ -57,14 +60,13 @@ pub(crate) fn ui_builder() -> impl Widget<AppState> {
         AppState::modal,
     );
 
-    Flex::column().with_child(container, 1.0).with_child(
+    Flex::column().with_flex_child(container, 1.0).with_child(
         Label::new(|data: &AppState, _env: &Env| data.status().unwrap_or_default())
-            .text_align(UnitPoint::RIGHT)
+            .with_text_alignment(TextAlignment::End)
             .padding((5.0, 3.0))
             .background(Color::rgb(0.5, 0.3, 0.5))
             .env_scope(|env, _| {
                 env.set(theme::TEXT_SIZE_NORMAL, 12.0);
             }),
-        0.0,
     )
 }
