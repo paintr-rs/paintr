@@ -4,7 +4,9 @@ use druid::{
     TextAlignment,
 };
 
-use crate::widgets::{notif_bar::NotificationContainer, Editor, ModalContainer, Named, RadioGroup};
+use crate::widgets::{
+    notif_bar::NotificationContainer, Conditional, Editor, ModalContainer, Named, RadioGroup,
+};
 use crate::{AppState, EditorState, ToolKind};
 
 fn canvas() -> impl Widget<AppState> {
@@ -60,7 +62,8 @@ pub(crate) fn ui_builder() -> impl Widget<AppState> {
         AppState::modal,
     );
 
-    Flex::column().with_flex_child(container, 1.0).with_child(
+    Flex::column().with_flex_child(container, 1.0).with_child(Conditional::new(
+        |data, _| data.status().is_some(),
         Label::new(|data: &AppState, _env: &Env| data.status().unwrap_or_default())
             .with_text_alignment(TextAlignment::End)
             .padding((5.0, 3.0))
@@ -68,5 +71,5 @@ pub(crate) fn ui_builder() -> impl Widget<AppState> {
             .env_scope(|env, _| {
                 env.set(theme::TEXT_SIZE_NORMAL, 12.0);
             }),
-    )
+    ))
 }
