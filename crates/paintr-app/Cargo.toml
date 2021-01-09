@@ -9,5 +9,5 @@ edition = "2018"
 [dependencies]
 paintr = {path="../paintr"}
 
-druid = { version = "0.4", features = ["svg"] }
-image = "0.22.3"
+druid = { version = "0.7.0", features = ["svg"] }
+image = "0.23.12"

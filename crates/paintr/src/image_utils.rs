@@ -28,7 +28,7 @@ pub(crate) fn merge_image(
     let section =
         src.view(offset.x as u32, offset.y as u32, rt.size().width as u32, rt.size().height as u32);
 
-    dest.copy_from(&section, origin.x as u32, origin.y as u32);
+    dest.copy_from(&section, origin.x as u32, origin.y as u32).expect("The size is invalid");
 }
 
 pub(crate) fn make_color_img(w: u32, h: u32, color: Rgba<u8>) -> DynamicImage {

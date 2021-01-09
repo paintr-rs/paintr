@@ -1,4 +1,7 @@
-use druid::{BoxConstraints, Env, Event, EventCtx, LayoutCtx, PaintCtx, Size, UpdateCtx, Widget};
+use druid::{
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
+    UpdateCtx, Widget,
+};
 use paintr::{CanvasData, Paintable};
 
 #[derive(Debug)]
@@ -13,16 +16,21 @@ impl Canvas {
 type DataType = Option<CanvasData>;
 
 impl Widget<DataType> for Canvas {
-    fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut DataType, _env: &Env) {}
-
-    fn update(
+    fn lifecycle(
         &mut self,
-        ctx: &mut UpdateCtx,
-        _old_data: Option<&DataType>,
+        _ctx: &mut LifeCycleCtx,
+        _event: &LifeCycle,
         _data: &DataType,
         _env: &Env,
     ) {
-        ctx.invalidate()
+    }
+
+    fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut DataType, _env: &Env) {}
+
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &DataType, data: &DataType, _env: &Env) {
+        if !is_same(old_data, data) {
+            ctx.request_paint();
+        }
     }
 
     fn layout(
@@ -39,5 +47,14 @@ impl Widget<DataType> for Canvas {
         if let Some(canvas) = &data {
             canvas.paint(paint_ctx.render_ctx);
         }
+    }
+}
+
+fn is_same(a: &DataType, b: &DataType) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (None, Some(_)) => false,
+        (Some(_), None) => false,
+        (Some(a), Some(b)) => a.same(b),
     }
 }

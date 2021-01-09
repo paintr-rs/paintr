@@ -4,6 +4,7 @@ use druid::{Data, Point, RenderContext, Size, Vec2};
 use crate::image_utils;
 use crate::plane::{PlaneIndex, Planes};
 use crate::{Paintable, Selection};
+use anyhow::Result;
 use std::sync::Arc;
 
 #[derive(Data, Clone)]
@@ -41,7 +42,7 @@ impl CanvasData {
         self.path.as_ref()
     }
 
-    pub fn save(&mut self, path: &std::path::Path) -> Result<(), std::io::Error> {
+    pub fn save(&mut self, path: &std::path::Path) -> Result<()> {
         let img = self.merged();
         img.save(path)?;
         self.path = Arc::new(path.into());

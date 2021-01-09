@@ -13,8 +13,8 @@ mod ui;
 mod widgets;
 
 use druid::{
-    theme, AppDelegate, AppLauncher, Application, Color, Data, DelegateCtx, Env, Event, Lens,
-    LocalizedString, WindowDesc, WindowId,
+    theme, AppDelegate, AppLauncher, Application, Color, Command, Data, DelegateCtx, Env, Handled,
+    Lens, LocalizedString, Target, WindowDesc, WindowId,
 };
 use paintr::{
     actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, CopyMode, Edit,
@@ -46,7 +46,7 @@ fn main() {
         .window_size((800.0, 600.0));
 
     AppLauncher::with_window(main_window)
-        .delegate(Delegate)
+        .delegate(Delegate::default())
         .configure_env(|env, _| {
             env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
             theme_ext::init(env);
@@ -56,7 +56,10 @@ fn main() {
         .expect("launch failed");
 }
 
-struct Delegate;
+#[derive(Default, Debug)]
+struct Delegate {
+    windows: Vec<WindowId>,
+}
 
 type Error = Box<dyn std::error::Error>;
 
@@ -111,7 +114,7 @@ const NEW_FILE_NAME: &str = "Untitled";
 fn to_rgba(img: image::DynamicImage) -> image::DynamicImage {
     image::DynamicImage::ImageRgba8(match img {
         image::DynamicImage::ImageRgba8(img) => img,
-        _ => img.to_rgba(),
+        _ => img.to_rgba8(),
     })
 }
 
@@ -185,13 +188,6 @@ impl AppState {
         }
     }
 
-    fn update_menu(&self, ctx: &mut DelegateCtx) {
-        ctx.submit_command(
-            druid::Command::new(druid::commands::SET_MENU, menu::make_menu(self)),
-            None,
-        );
-    }
-
     fn status(&self) -> Option<String> {
         Some(self.editor.canvas.as_ref()?.selection()?.description())
     }
@@ -203,108 +199,125 @@ impl Delegate {
         data: &mut AppState,
         ctx: &mut DelegateCtx,
         cmd: &druid::Command,
-    ) -> Result<(), Error> {
-        match &cmd.selector {
-            &commands::FILE_EXIT_ACTION => {
-                ctx.submit_command(druid::commands::CLOSE_WINDOW, None);
+    ) -> Result<Handled, Error> {
+        match cmd {
+            _ if cmd.is(commands::FILE_EXIT_ACTION) => {
+                ctx.submit_command(druid::commands::CLOSE_WINDOW);
             }
-            &commands::FILE_NEW_ACTION => {
+            _ if cmd.is(commands::FILE_NEW_ACTION) => {
                 data.modal = Some(DialogData::new_file_settings());
-                data.update_menu(ctx);
+                self.update_menu(data, ctx);
             }
-            &commands::FILE_NEW_CLIPBOARD_ACTION => {
+            _ if cmd.is(commands::FILE_NEW_CLIPBOARD_ACTION) => {
                 data.do_new_image_from_clipboard()?;
                 data.show_notification(Notification::info("New file created"));
-                data.update_menu(ctx);
+                self.update_menu(data, ctx);
             }
-            &druid::commands::OPEN_FILE => {
-                let info = cmd
-                    .get_object::<druid::FileInfo>()
-                    .ok_or_else(|| "api violation".to_string())?;
+            _ if cmd.is(druid::commands::OPEN_FILE) => {
+                let info = cmd.get_unchecked(druid::commands::OPEN_FILE);
                 data.do_open_image(info.path())?;
                 data.show_notification(Notification::info(format!(
                     "{} opened",
                     data.image_file_name()
                 )));
-                data.update_menu(ctx);
+                self.update_menu(data, ctx);
             }
-            &druid::commands::SAVE_FILE => {
-                let info = cmd
-                    .get_object::<druid::FileInfo>()
-                    .ok_or_else(|| "api violation".to_string())?;
+            _ if cmd.is(druid::commands::SAVE_FILE_AS) => {
+                let info = cmd.get_unchecked(druid::commands::SAVE_FILE_AS);
                 data.do_save_as_image(info.path())?;
                 data.show_notification(Notification::info(format!(
                     "{} saved",
                     data.image_file_name()
                 )));
-                data.update_menu(ctx);
+                self.update_menu(data, ctx);
             }
-            &commands::EDIT_UNDO_ACTION => {
+            _ if cmd.is(commands::EDIT_UNDO_ACTION) => {
                 if let Some(desc) = data.editor.do_undo() {
                     data.show_notification(Notification::info(format!("Undo {}", desc)));
                 }
             }
-            &commands::EDIT_REDO_ACTION => {
+            _ if cmd.is(commands::EDIT_REDO_ACTION) => {
                 if let Some(desc) = data.editor.do_redo() {
                     data.show_notification(Notification::info(format!("Redo {}", desc)));
                 }
             }
-            &commands::EDIT_COPY_ACTION => {
+            _ if cmd.is(commands::EDIT_COPY_ACTION) => {
                 if data.do_copy()? {
                     data.show_notification(Notification::info("Copied"));
                 }
             }
-            &commands::EDIT_PASTE_ACTION => {
+            _ if cmd.is(commands::EDIT_PASTE_ACTION) => {
                 if data.do_paste()? {
                     data.show_notification(Notification::info("Pasted"));
                 }
             }
-            &commands::NEW_IMAGE_ACTION => {
-                let info = cmd
-                    .get_object::<dialogs::NewFileSettings>()
-                    .ok_or_else(|| "api violation".to_string())?;
-
+            _ if cmd.is(commands::NEW_IMAGE_ACTION) => {
+                let info = cmd.get_unchecked(commands::NEW_IMAGE_ACTION);
                 data.do_new_image(info)?;
                 data.show_notification(Notification::info("New file created"));
-                data.update_menu(ctx);
+                self.update_menu(data, ctx);
             }
-            _ => (),
+            _ if cmd.is(commands::ABOUT_TEST_ACTION) => {
+                data.show_notification(Notification::info("Test"));
+            }
+            _ => return Ok(Handled::No),
         }
 
-        Ok(())
+        Ok(Handled::Yes)
+    }
+
+    fn update_menu(&self, data: &AppState, ctx: &mut DelegateCtx) {
+        let menu = menu::make_menu(data);
+
+        for id in &self.windows {
+            ctx.set_menu(menu.clone(), *id);
+        }
     }
 }
 
 impl AppDelegate<AppState> for Delegate {
-    fn event(
+    fn command(
         &mut self,
-        event: Event,
+        ctx: &mut DelegateCtx,
+        _target: Target,
+        cmd: &Command,
         data: &mut AppState,
         _env: &Env,
-        ctx: &mut DelegateCtx,
-    ) -> Option<Event> {
-        match event {
-            Event::TargetedCommand(_, ref cmd) => {
-                if let Err(err) = self.handle_command(data, ctx, cmd) {
-                    data.show_notification(Notification::error(err.to_string()));
-                }
+    ) -> Handled {
+        let res = self.handle_command(data, ctx, cmd);
+
+        match res {
+            Err(err) => {
+                data.show_notification(Notification::error(err.to_string()));
+                Handled::Yes
             }
-
-            _ => (),
-        };
-
-        Some(event)
+            Ok(it) => it,
+        }
     }
 
-    fn window_removed(
+    fn window_added(
         &mut self,
-        _id: WindowId,
+        id: WindowId,
         _data: &mut AppState,
         _env: &Env,
         _ctx: &mut DelegateCtx,
     ) {
+        self.windows.push(id);
+    }
+
+    fn window_removed(
+        &mut self,
+        id: WindowId,
+        _data: &mut AppState,
+        _env: &Env,
+        _ctx: &mut DelegateCtx,
+    ) {
+        if let Some(pos) = self.windows.iter().position(|x| *x == id) {
+            self.windows.remove(pos);
+        }
+
         // FIXME: Use commands::QUIT_APP
         // It do not works right now, maybe a druid bug
-        Application::quit();
+        Application::global().quit();
     }
 }

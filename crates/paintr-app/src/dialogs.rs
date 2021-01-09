@@ -1,7 +1,10 @@
-use druid::widget::{Button, Flex, Label, LabelText, Parse, TextBox, WidgetExt};
 use druid::{
-    lens::{self, LensExt, LensWrap},
-    Color, Command, Data, Env, Lens, UnitPoint, Widget,
+    lens::{self, LensExt},
+    Color, Command, Data, Env, Lens, Target, Widget,
+};
+use druid::{
+    widget::{Button, Flex, Label, LabelText, LensWrap, Parse, TextBox, WidgetExt},
+    TextAlignment,
 };
 
 use crate::commands::NEW_IMAGE_ACTION;
@@ -46,7 +49,7 @@ pub struct NewFileSettings {
 
 fn make_label<T: Data + 'static>(text: impl Into<LabelText<T>>) -> impl Widget<T> {
     let row_padding = (10.0, 2.5);
-    Label::new(text).text_align(UnitPoint::BOTTOM_LEFT).padding(row_padding).fix_width(100.0)
+    Label::new(text).with_text_alignment(TextAlignment::Start).padding(row_padding).fix_width(100.0)
 }
 
 macro_rules! dialog_lens {
@@ -57,15 +60,16 @@ macro_rules! dialog_lens {
 
 impl NewFileSettings {
     fn widget(&self) -> impl Widget<Dialog<NewFileSettings>> {
-        let ok_button = Button::new(L!("Ok"), |_, data: &mut Dialog<NewFileSettings>, _: &Env| {
-            if data.kind.width.is_none() || data.kind.height.is_none() {
-                return;
-            }
-            data.state = DialogState::Closed;
-        });
+        let ok_button =
+            Button::new(L!("Ok")).on_click(|_, data: &mut Dialog<NewFileSettings>, _: &Env| {
+                if data.kind.width.is_none() || data.kind.height.is_none() {
+                    return;
+                }
+                data.state = DialogState::Closed;
+            });
 
         let cancel_button =
-            Button::new(L!("Cancel"), |_, data: &mut Dialog<NewFileSettings>, _: &Env| {
+            Button::new(L!("Cancel")).on_click(|_, data: &mut Dialog<NewFileSettings>, _: &Env| {
                 data.state = DialogState::Cancel;
             });
 
@@ -74,34 +78,31 @@ impl NewFileSettings {
         Flex::column()
             .with_child(
                 Flex::row()
-                    .with_child(make_label(L!("Width :")), 0.0)
-                    .with_child(
-                        Parse::new(TextBox::with_placeholder("100"))
+                    .with_child(make_label(L!("Width :")))
+                    .with_flex_child(
+                        Parse::new(TextBox::new().with_placeholder("100"))
                             .padding(row_padding)
                             .lens(dialog_lens!(NewFileSettings, width)),
                         1.0,
                     )
                     .padding((3.0, row_padding)),
-                0.0,
             )
             .with_child(
                 Flex::row()
-                    .with_child(make_label(L!("Height :")), 0.0)
-                    .with_child(
-                        Parse::new(TextBox::with_placeholder("100"))
+                    .with_child(make_label(L!("Height :")))
+                    .with_flex_child(
+                        Parse::new(TextBox::new().with_placeholder("100"))
                             .padding(row_padding)
                             .lens(dialog_lens!(NewFileSettings, height)),
                         1.0,
                     )
                     .padding((3.0, row_padding)),
-                0.0,
             )
             .with_child(
                 Flex::row()
-                    .with_child(ok_button.padding(5.0), 1.0)
-                    .with_child(cancel_button.padding(5.0), 1.0)
+                    .with_flex_child(ok_button.padding(5.0), 1.0)
+                    .with_flex_child(cancel_button.padding(5.0), 1.0)
                     .padding((3.0, 5.0)),
-                0.0,
             )
             .fix_width(300.0)
             .fix_height(300.0)
@@ -119,7 +120,7 @@ impl Modal for DialogData {
     fn is_closed(&self) -> Option<Command> {
         match self {
             DialogData::NewFileSettings(it) if it.state == DialogState::Closed => {
-                Some(Command::new(NEW_IMAGE_ACTION, it.kind.clone()))
+                Some(Command::new(NEW_IMAGE_ACTION, it.kind.clone(), Target::Auto))
             }
             _ => None,
         }
@@ -134,7 +135,7 @@ impl DialogData {
                 DialogState::Opened => {
                     let w = LensWrap::new(
                         dialog.kind.widget(),
-                        lens::Id.map(
+                        lens::Identity.map(
                             |x: &DialogData| match x {
                                 DialogData::NewFileSettings(it) => it.clone(),
                             },

@@ -4,8 +4,8 @@
 
 use druid::{
     lens::{self, LensExt},
-    BoxConstraints, Command, Data, Env, Event, EventCtx, LayoutCtx, PaintCtx, Point, Rect, Size,
-    UpdateCtx, Widget, WidgetPod,
+    BoxConstraints, Command, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx,
+    PaintCtx, Point, Rect, Size, UpdateCtx, Widget, WidgetPod,
 };
 
 pub trait Modal {
@@ -36,6 +36,18 @@ impl<T: Data, M: Data + Modal, L: lens::Lens<T, Option<M>>> ModalContainer<T, M,
 impl<T: Data, M: Data + Modal + 'static, L: lens::Lens<T, Option<M>>> Widget<T>
     for ModalContainer<T, M, L>
 {
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        self.inner.lifecycle(ctx, event, data, env);
+
+        if let Some(modal) = &mut self.modal {
+            self.lens.with(data, |data| {
+                if let Some(data) = data {
+                    modal.lifecycle(ctx, event, data, env);
+                }
+            });
+        }
+    }
+
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         // if we have modal, block all other event
         if let Some(modal) = &mut self.modal {
@@ -44,7 +56,7 @@ impl<T: Data, M: Data + Modal + 'static, L: lens::Lens<T, Option<M>>> Widget<T>
                     modal.event(ctx, event, modal_data, env);
 
                     if let Some(cmd) = modal_data.is_closed() {
-                        ctx.submit_command(cmd, ctx.window_id());
+                        ctx.submit_command(cmd);
                         *data = None;
                     }
                 }
@@ -55,15 +67,11 @@ impl<T: Data, M: Data + Modal + 'static, L: lens::Lens<T, Option<M>>> Widget<T>
 
         self.inner.event(ctx, event, data, env);
     }
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: Option<&T>, data: &T, env: &Env) {
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
         self.inner.update(ctx, data, env);
 
-        let changed = match old_data {
-            Some(old_data) => self
-                .lens
-                .with(old_data, |old_data| self.lens.with(data, |data| !old_data.same(data))),
-            _ => true,
-        };
+        let changed =
+            self.lens.with(old_data, |old_data| self.lens.with(data, |data| !old_data.same(data)));
 
         if changed {
             self.modal = self
@@ -73,7 +81,7 @@ impl<T: Data, M: Data + Modal + 'static, L: lens::Lens<T, Option<M>>> Widget<T>
                 .and_then(|data| (*self.closure)(data, env))
                 .map(|w| WidgetPod::new(w).boxed());
 
-            ctx.invalidate();
+            ctx.request_paint();
         }
 
         if let Some(modal) = &mut self.modal {
@@ -86,13 +94,18 @@ impl<T: Data, M: Data + Modal + 'static, L: lens::Lens<T, Option<M>>> Widget<T>
     }
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let size = self.inner.layout(ctx, bc, data, env);
-        self.inner.set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
+        self.inner.set_layout_rect(ctx, data, env, Rect::from_origin_size(Point::ORIGIN, size));
 
         if let Some(modal) = &mut self.modal {
             self.lens.with(data, |data| {
                 if let Some(data) = data {
                     let size = modal.layout(ctx, bc, data, env);
-                    modal.set_layout_rect(Rect::from_origin_size(Point::ORIGIN, size));
+                    modal.set_layout_rect(
+                        ctx,
+                        data,
+                        env,
+                        Rect::from_origin_size(Point::ORIGIN, size),
+                    );
                 }
             });
         }
@@ -100,12 +113,12 @@ impl<T: Data, M: Data + Modal + 'static, L: lens::Lens<T, Option<M>>> Widget<T>
         size
     }
     fn paint(&mut self, paint_ctx: &mut PaintCtx, data: &T, env: &Env) {
-        self.inner.paint_with_offset(paint_ctx, data, env);
+        self.inner.paint(paint_ctx, data, env);
 
         if let Some(modal) = &mut self.modal {
             self.lens.with(data, |data| {
                 if let Some(data) = data {
-                    modal.paint_with_offset(paint_ctx, data, env);
+                    modal.paint(paint_ctx, data, env);
                 }
             });
         }
