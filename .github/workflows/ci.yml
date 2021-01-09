@@ -42,6 +42,14 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
+      # Workaround for https://github.com/actions/cache/issues/403
+      - name: Install GNU tar
+        run: |
+          brew install gnu-tar
+          # echo "::add-path::/usr/local/opt/gnu-tar/libexec/gnubin"
+          echo "/usr/local/opt/gnu-tar/libexec/gnubin" >> $GITHUB_PATH
+        if: contains(matrix.os, 'mac')
+
       - name: install cairo
         run: brew install cairo
         if: contains(matrix.os, 'mac')
@@ -60,10 +68,12 @@ jobs:
           override: true
       
       - name: cargo target cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: compile
         uses: actions-rs/cargo@v1
