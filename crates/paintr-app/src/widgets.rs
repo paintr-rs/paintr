@@ -1,4 +1,5 @@
 mod canvas;
+mod conditional;
 mod editor;
 mod modal;
 mod named;
@@ -7,6 +8,7 @@ mod radio;
 
 pub mod notif_bar;
 
+pub use conditional::Conditional;
 pub use editor::Editor;
 pub use modal::{Modal, ModalContainer};
 pub use named::Named;
