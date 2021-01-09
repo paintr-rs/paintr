@@ -87,7 +87,11 @@ impl<T: Data, M: Data + Modal + 'static, L: lens::Lens<T, Option<M>>> Widget<T>
         if let Some(modal) = &mut self.modal {
             self.lens.with(data, |data| {
                 if let Some(data) = data {
-                    modal.update(ctx, data, env);
+                    if !modal.is_initialized() {
+                        ctx.children_changed();
+                    } else {
+                        modal.update(ctx, data, env);
+                    }
                 }
             });
         }

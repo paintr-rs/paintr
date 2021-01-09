@@ -100,12 +100,12 @@ impl NewFileSettings {
             )
             .with_child(
                 Flex::row()
-                    .with_flex_child(ok_button.padding(5.0), 1.0)
-                    .with_flex_child(cancel_button.padding(5.0), 1.0)
+                    .with_flex_child(ok_button.padding(5.0).center(), 1.0)
+                    .with_flex_child(cancel_button.padding(5.0).center(), 1.0)
                     .padding((3.0, 5.0)),
             )
             .fix_width(300.0)
-            .fix_height(300.0)
+            .fix_height(100.0)
             .background(Color::grey(0.3))
             .center()
     }
