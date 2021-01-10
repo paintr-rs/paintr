@@ -47,9 +47,12 @@ fn main() {
 
     AppLauncher::with_window(main_window)
         .delegate(Delegate::default())
-        .configure_env(|env, _| {
+        .configure_env(|old, _| {
+            // FIXME: Replace a new location manager as druid API allow
+            let mut env = Env::default();
             env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
-            theme_ext::init(env);
+            theme_ext::init(&mut env);
+            *old = env;
         })
         // .use_simple_logger()
         .launch(app_state)
