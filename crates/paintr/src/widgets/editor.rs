@@ -6,7 +6,7 @@ use druid::{
 use super::canvas::Canvas;
 use crate::tools::ToolCtx;
 use crate::EditorState;
-use paintr::Paintable;
+use paintr_core::Paintable;
 
 #[derive(Debug)]
 pub struct Editor {

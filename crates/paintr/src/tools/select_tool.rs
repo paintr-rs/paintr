@@ -1,7 +1,7 @@
 use super::Tool;
 use crate::EditorState;
 use druid::{Data, Event, EventCtx, MouseButton, Point, Rect};
-use paintr::{CanvasData, Selection};
+use paintr_core::{CanvasData, Selection};
 
 #[derive(Debug)]
 pub(crate) struct SelectTool;

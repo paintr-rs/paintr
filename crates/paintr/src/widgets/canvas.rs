@@ -2,7 +2,7 @@ use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
     UpdateCtx, Widget,
 };
-use paintr::{CanvasData, Paintable};
+use paintr_core::{CanvasData, Paintable};
 
 #[derive(Debug)]
 pub struct Canvas {}

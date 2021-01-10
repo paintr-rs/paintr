@@ -1298,6 +1298,15 @@ dependencies = [
 name = "paintr"
 version = "0.1.0"
 dependencies = [
+ "druid",
+ "image",
+ "paintr_core",
+]
+
+[[package]]
+name = "paintr_core"
+version = "0.1.0"
+dependencies = [
  "anyhow",
  "byteorder",
  "druid",
@@ -1305,15 +1314,6 @@ dependencies = [
  "imageproc",
  "log",
  "svg",
-]
-
-[[package]]
-name = "paintr-app"
-version = "0.1.0"
-dependencies = [
- "druid",
- "image",
- "paintr",
 ]
 
 [[package]]
@@ -2331,3 +2331,27 @@ name = "xmlwriter"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
+
+[[package]]
+name = "xshell"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed373ede30cea03e8c0af22f48ee1ba80efbf06fec8b4746977e6ee703878de0"
+dependencies = [
+ "xshell-macros",
+]
+
+[[package]]
+name = "xshell-macros"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f6af9f8119104697b0105989a73c578ce33f922d9d6f3dae0e8ae3d538db321"
+
+[[package]]
+name = "xtask"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "pico-args",
+ "xshell",
+]

@@ -16,7 +16,7 @@ use druid::{
     theme, AppDelegate, AppLauncher, Application, Color, Command, Data, DelegateCtx, Env, Handled,
     Lens, LocalizedString, Target, WindowDesc, WindowId,
 };
-use paintr::{
+use paintr_core::{
     actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, CopyMode, Edit,
     EditDesc, EditKind, UndoHistory,
 };
@@ -47,9 +47,12 @@ fn main() {
 
     AppLauncher::with_window(main_window)
         .delegate(Delegate::default())
-        .configure_env(|env, _| {
+        .configure_env(|old, _| {
+            // FIXME: Replace a new location manager as druid API allow
+            let mut env = Env::default();
             env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
-            theme_ext::init(env);
+            theme_ext::init(&mut env);
+            *old = env;
         })
         // .use_simple_logger()
         .launch(app_state)
