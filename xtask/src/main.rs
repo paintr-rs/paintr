@@ -3,9 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use pico_args::Arguments;
-use xshell::{cmd, pushd};
+use xshell::{cmd, pushd, pushenv};
 
 fn main() -> Result<()> {
     let _d = pushd(project_root());
@@ -31,21 +31,25 @@ FLAGS:
 
             let cmd = cmd!("cargo install --path crates/paintr --locked --force");
             cmd.run()?;
+            Ok(())
+        }
+        "format" => {
+            args.finish()?;
+            run_rustfmt(Mode::Overwrite)
         }
         _ => {
             eprintln!(
-                r#"
-cargo xtask
+                r#"cargo xtask
 Run custom build command.
 USAGE:
     cargo xtask <SUBCOMMAND>
 SUBCOMMANDS:
-    install"#
+    install
+    format"#
             );
+            Ok(())
         }
     }
-
-    Ok(())
 }
 
 pub fn project_root() -> PathBuf {
@@ -56,4 +60,33 @@ pub fn project_root() -> PathBuf {
     .nth(1)
     .unwrap()
     .to_path_buf()
+}
+
+#[allow(unused)]
+enum Mode {
+    Overwrite,
+    Verify,
+}
+
+fn run_rustfmt(mode: Mode) -> Result<()> {
+    let _dir = pushd(project_root())?;
+    let _e = pushenv("RUSTUP_TOOLCHAIN", "stable");
+    ensure_rustfmt()?;
+    let check = match mode {
+        Mode::Overwrite => &[][..],
+        Mode::Verify => &["--", "--check"],
+    };
+    cmd!("cargo fmt {check...}").run()?;
+    Ok(())
+}
+
+fn ensure_rustfmt() -> Result<()> {
+    let out = cmd!("rustfmt --version").read()?;
+    if !out.contains("stable") {
+        bail!(
+            "Failed to run rustfmt from toolchain 'stable'. \
+             Please run `rustup component add rustfmt --toolchain stable` to install it.",
+        )
+    }
+    Ok(())
 }
