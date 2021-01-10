@@ -1,10 +1,12 @@
-use druid::{Data, Event, EventCtx, MouseButton, Point};
+use std::any::Any;
+
+use druid::{Cursor, Data, Event, EventCtx, MouseButton, Point};
 use paintr_core::{
     actions::{MoveCanvas, MoveSelection},
     EditKind,
 };
 
-use super::Tool;
+use super::{Tool, ToolCtx};
 use crate::EditorState;
 
 #[derive(Debug)]
@@ -22,6 +24,7 @@ pub(crate) struct MoveToolCtx {
     down: Point,
     origin: Point,
     curr: Point,
+    cursor: Option<Cursor>,
 }
 
 impl MoveToolCtx {
@@ -37,7 +40,7 @@ impl MoveToolCtx {
             }
         }
 
-        Some(Self { kind, down: pt, origin, curr: origin })
+        Some(Self { kind, down: pt, origin, curr: origin, cursor: None })
     }
 
     fn moved(&mut self, editor: &mut EditorState, pt: Point, kind: EditKind) -> Option<()> {
@@ -76,6 +79,11 @@ impl Tool for MoveTool {
         data: &mut EditorState,
         tool_ctx: &mut Option<MoveToolCtx>,
     ) {
+        if data.cursor != Some(Cursor::Arrow) {
+            data.cursor = Some(Cursor::Arrow);
+            ctx.set_cursor(&Cursor::Arrow);
+        }
+
         match event {
             Event::MouseDown(me) => {
                 if me.button == MouseButton::Left {
@@ -102,5 +110,11 @@ impl Tool for MoveTool {
             }
             _ => (),
         };
+    }
+}
+
+impl ToolCtx for MoveToolCtx {
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
