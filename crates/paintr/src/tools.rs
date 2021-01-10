@@ -1,14 +1,19 @@
 mod move_tool;
 mod select_tool;
 
+use std::any::Any;
+
 use crate::EditorState;
 use druid::{Data, Event, EventCtx};
 use move_tool::MoveTool;
-use paintr_core::impl_from;
 use select_tool::SelectTool;
 
+pub trait ToolCtx {
+    fn into_any(self: Box<Self>) -> Box<dyn Any>;
+}
+
 pub(crate) trait Tool {
-    type Context: FromToolCtx + Into<ToolCtx>;
+    type Context: ToolCtx + 'static;
 
     fn event(
         &self,
@@ -20,74 +25,44 @@ pub(crate) trait Tool {
 
     fn do_event(
         &self,
-        tctx: &mut Option<ToolCtx>,
+        tctx: &mut Option<Box<dyn ToolCtx>>,
         ctx: &mut EventCtx,
         event: &Event,
         data: &mut EditorState,
     ) {
-        let mut tool_ctx = tctx.take().and_then(|it| Self::Context::from_ctx(it));
+        let mut tool_ctx = tctx.take().and_then(|it| Some(*it.into_any().downcast().ok()?));
         self.event(ctx, event, data, &mut tool_ctx);
-        *tctx = tool_ctx.map(|it| it.into());
+        *tctx = tool_ctx.map(|it| {
+            let b: Box<dyn ToolCtx> = Box::new(it);
+            b
+        });
     }
 }
 
-#[derive(Debug, Clone, Data, PartialEq, Eq, Copy)]
-pub(crate) enum ToolKind {
-    Move,
-    Select,
-}
-
-macro_rules! impl_tool_ctx {
-    ($($tool:ident => $kind:ident),*) => {
-        #[derive(Debug, Clone, Data)]
-        pub(crate) enum ToolCtx {
-            $(
-                $kind(<$tool as Tool>::Context)
-            ),*
+macro_rules! register_tool {
+    ($($e:ident => $tool:path),* $(,)?) => {
+        #[derive(Debug, Clone, Data, PartialEq, Eq, Copy)]
+        pub(crate) enum ToolKind {
+            $($e),*
         }
 
-        impl_from! {
-            ToolCtx : [
-                $(
-                    <$tool as Tool>::Context => $kind
-                ),*
-            ]
-        }
-
-        $(
-        impl FromToolCtx for <$tool as Tool>::Context {
-            fn from_ctx(ctx: ToolCtx) -> Option<Self> {
-                match ctx {
-                    ToolCtx::$kind(it) => Some(it),
-                    _ => None,
+        impl ToolKind {
+            pub(crate) fn event(
+                &self,
+                ctx: &mut EventCtx,
+                event: &Event,
+                data: &mut EditorState,
+                tool_ctx: &mut Option<Box<dyn ToolCtx>>,
+            ) {
+                match self {
+                    $(ToolKind::$e => $tool.do_event(tool_ctx, ctx, event, data),)*
                 }
             }
-        })*
-    }
-}
-
-pub(crate) trait FromToolCtx {
-    fn from_ctx(ctx: ToolCtx) -> Option<Self>
-    where
-        Self: Sized;
-}
-
-impl_tool_ctx! {
-    MoveTool => Move,
-    SelectTool => Select
-}
-
-impl ToolKind {
-    pub(crate) fn event(
-        &self,
-        ctx: &mut EventCtx,
-        event: &Event,
-        data: &mut EditorState,
-        tool_ctx: &mut Option<ToolCtx>,
-    ) {
-        match self {
-            ToolKind::Move => MoveTool.do_event(tool_ctx, ctx, event, data),
-            ToolKind::Select => SelectTool.do_event(tool_ctx, ctx, event, data),
         }
-    }
+    };
+}
+
+register_tool! {
+    Move => MoveTool,
+    Select => SelectTool
 }

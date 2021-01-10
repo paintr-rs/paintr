@@ -8,9 +8,8 @@ use crate::tools::ToolCtx;
 use crate::EditorState;
 use paintr_core::Paintable;
 
-#[derive(Debug)]
 pub struct Editor {
-    tool_ctx: Option<ToolCtx>,
+    tool_ctx: Option<Box<dyn ToolCtx>>,
     canvas: Canvas,
 }
 

@@ -13,8 +13,8 @@ mod ui;
 mod widgets;
 
 use druid::{
-    theme, AppDelegate, AppLauncher, Application, Color, Command, Data, DelegateCtx, Env, Handled,
-    Lens, LocalizedString, Target, WindowDesc, WindowId,
+    theme, AppDelegate, AppLauncher, Application, Color, Command, Cursor, Data, DelegateCtx, Env,
+    Handled, Lens, LocalizedString, Target, WindowDesc, WindowId,
 };
 use paintr_core::{
     actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, CopyMode, Edit,
@@ -37,6 +37,7 @@ fn main() {
             history: UndoHistory::new(),
             tool: ToolKind::Select,
             is_editing: false,
+            cursor: None,
         },
     };
 
@@ -72,6 +73,7 @@ pub struct EditorState {
     history: UndoHistory<CanvasData>,
     tool: ToolKind,
     is_editing: bool,
+    cursor: Option<Cursor>,
 }
 
 impl EditorState {
