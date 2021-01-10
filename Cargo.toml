@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "xtask/"]
 
 # [patch.crates-io]
 # direct2d = { git = 'https://github.com/edwin0cheng/direct2d-rs', branch="fix-close-gb" }

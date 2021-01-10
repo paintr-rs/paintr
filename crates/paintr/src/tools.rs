@@ -4,7 +4,7 @@ mod select_tool;
 use crate::EditorState;
 use druid::{Data, Event, EventCtx};
 use move_tool::MoveTool;
-use paintr::impl_from;
+use paintr_core::impl_from;
 use select_tool::SelectTool;
 
 pub(crate) trait Tool {

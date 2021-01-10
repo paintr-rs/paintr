@@ -16,7 +16,7 @@ use druid::{
     theme, AppDelegate, AppLauncher, Application, Color, Command, Data, DelegateCtx, Env, Handled,
     Lens, LocalizedString, Target, WindowDesc, WindowId,
 };
-use paintr::{
+use paintr_core::{
     actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, CopyMode, Edit,
     EditDesc, EditKind, UndoHistory,
 };

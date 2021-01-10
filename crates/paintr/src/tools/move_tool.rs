@@ -1,5 +1,5 @@
 use druid::{Data, Event, EventCtx, MouseButton, Point};
-use paintr::{
+use paintr_core::{
     actions::{MoveCanvas, MoveSelection},
     EditKind,
 };

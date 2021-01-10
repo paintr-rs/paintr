@@ -11,7 +11,7 @@ use crate::commands::NEW_IMAGE_ACTION;
 use crate::widgets::Modal;
 
 use image::GenericImageView;
-use paintr::get_image_from_clipboard;
+use paintr_core::get_image_from_clipboard;
 
 #[derive(Eq, PartialEq, Clone, Debug, Data)]
 enum DialogState {
