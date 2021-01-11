@@ -1301,6 +1301,7 @@ dependencies = [
  "druid",
  "image",
  "paintr_core",
+ "paintr_widgets",
 ]
 
 [[package]]
@@ -1314,6 +1315,15 @@ dependencies = [
  "imageproc",
  "log",
  "svg",
+]
+
+[[package]]
+name = "paintr_widgets"
+version = "0.1.0"
+dependencies = [
+ "druid",
+ "image",
+ "paintr_core",
 ]
 
 [[package]]

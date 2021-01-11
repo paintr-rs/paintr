@@ -1,7 +1,9 @@
 use std::any::Any;
 
-use super::{Tool, ToolCtx};
+use crate::tools::ToolKind;
+use crate::widgets::{Tool, ToolCtx};
 use crate::EditorState;
+
 use druid::{Cursor, Data, Event, EventCtx, MouseButton, Point, Rect};
 use paintr_core::{CanvasData, Selection};
 
@@ -43,12 +45,13 @@ impl SelectToolCtx {
 
 impl Tool for SelectTool {
     type Context = SelectToolCtx;
+    type Kind = ToolKind;
 
     fn event(
         &self,
         ctx: &mut EventCtx,
         event: &Event,
-        data: &mut EditorState,
+        data: &mut EditorState<ToolKind>,
         tool_ctx: &mut Option<SelectToolCtx>,
     ) {
         if data.cursor != Some(Cursor::Crosshair) {

@@ -9,7 +9,7 @@ mod radio;
 pub mod notif_bar;
 
 pub use conditional::Conditional;
-pub use editor::Editor;
+pub use editor::{Editor, Tool, ToolCtx, ToolKind};
 pub use modal::{Modal, ModalContainer};
 pub use named::Named;
 pub use painter::Painter;
