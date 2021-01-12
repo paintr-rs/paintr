@@ -1,5 +1,6 @@
 use druid::Data;
 use std::any::Any;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
@@ -18,7 +19,7 @@ impl std::fmt::Display for EditDesc {
 }
 
 /// Edit represent an edit action
-pub trait Edit<T: Data> {
+pub trait Edit<T: Data>: Debug {
     fn apply(&self, data: &mut T);
 
     fn execute(&self, data: &mut T) -> T {
@@ -35,16 +36,16 @@ pub trait Edit<T: Data> {
     fn description(&self) -> EditDesc;
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct UndoHistory<T>
 where
-    T: Data,
+    T: Data + Debug,
 {
     undos: Vec<UndoState<T>>,
     redos: Vec<Arc<dyn Edit<T>>>,
 }
 
-impl<T: Data> Data for UndoHistory<T> {
+impl<T: Data + Debug> Data for UndoHistory<T> {
     fn same(&self, _other: &Self) -> bool {
         true
     }
@@ -56,7 +57,7 @@ pub enum EditKind {
     Mergeable,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct UndoState<T: Data> {
     old: T,
     kind: EditKind,
@@ -75,7 +76,7 @@ impl<T: Data> UndoState<T> {
     }
 }
 
-impl<T: Data> UndoHistory<T> {
+impl<T: Data + Debug> UndoHistory<T> {
     /// Add an edit on the undo stack and apply this edit
     pub fn edit(&mut self, data: &mut T, mut edit: impl Edit<T> + 'static, kind: EditKind) {
         let old = edit.execute(data);
