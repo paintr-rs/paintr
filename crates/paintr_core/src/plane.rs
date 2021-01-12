@@ -123,6 +123,7 @@ impl Planes {
         PlaneIndex(self.planes.len() - 1)
     }
 
+    /// Merge all plane, ignore negative transform
     pub(crate) fn merged(&self) -> Option<Arc<DynamicImage>> {
         let size = self.max_size()?;
         let mut img = image_utils::transparent_image(size.width as u32, size.height as u32);
@@ -132,6 +133,13 @@ impl Planes {
         }
 
         Some(Arc::new(img))
+    }
+
+    pub(crate) fn merged_to(&self, mut img: DynamicImage, transform: Vec2) -> Arc<DynamicImage> {
+        for plane in &self.planes {
+            image_utils::merge_image(&mut img, &plane.inner.image(), plane.transform + transform);
+        }
+        Arc::new(img)
     }
 
     pub(crate) fn move_with_index(&mut self, idx: PlaneIndex, offset: Vec2) {

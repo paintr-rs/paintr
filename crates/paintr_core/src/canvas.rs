@@ -57,16 +57,14 @@ impl CanvasData {
     }
 
     pub fn merged(&self) -> Arc<image::DynamicImage> {
-        let img = self.planes.merged().expect("There is at least plane in Canvas");
         if self.transform == Vec2::ZERO {
+            let img = self.planes.merged().expect("There is at least plane in Canvas");
             return img;
         }
         // Create partial image based on offset and size
-        let mut output =
+        let output =
             image_utils::transparent_image(self.size.width as u32, self.size.height as u32);
-        image_utils::merge_image(&mut output, &img, self.transform);
-
-        Arc::new(output)
+        self.planes.merged_to(output, self.transform)
     }
 
     pub fn select(&mut self, sel: impl Into<Selection>) {
@@ -166,7 +164,7 @@ mod test {
     #[test]
     fn canvas_data_merged_should_works_with_moved() {
         let mut canvas = canvas_fixture(16, 16, WHITE);
-        canvas.move_canvas(Vec2::new(2.0, 2.0));
+        canvas.move_canvas(Vec2::new(4.0, 4.0));
         let black = make_color_img(4, 4, BLACK);
         canvas.paste(Arc::new(black));
         let merged = canvas.merged();
