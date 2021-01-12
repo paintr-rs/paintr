@@ -5,9 +5,10 @@ use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Rgba};
 pub mod colors {
     use super::Rgba;
 
-    pub const TRANSPARENT: Rgba<u8> = super::Rgba([0u8, 0u8, 0u8, 0xffu8]);
+    pub const TRANSPARENT: Rgba<u8> = super::Rgba([0u8, 0u8, 0u8, 0x0u8]);
     pub const BLACK: Rgba<u8> = Rgba([0x0u8, 0x0u8, 0x0u8, 0xFFu8]);
     pub const WHITE: Rgba<u8> = Rgba([0xffu8, 0xf0u8, 0xffu8, 0xffu8]);
+    pub const YELLOW: Rgba<u8> = Rgba([0xffu8, 0xc9u8, 0x22u8, 0xffu8]);
 }
 
 pub(crate) fn merge_image(

@@ -4,6 +4,7 @@ use druid::Vec2;
 use std::any::Any;
 use std::sync::Arc;
 
+/// Paste image to canvas
 pub struct Paste {
     img: Arc<image::DynamicImage>,
 }
@@ -31,6 +32,7 @@ impl Edit<CanvasData> for Paste {
     }
 }
 
+/// Move the whole canvas
 #[derive(Debug)]
 pub struct MoveCanvas {
     offset: Vec2,
@@ -62,6 +64,7 @@ impl Edit<CanvasData> for MoveCanvas {
     }
 }
 
+/// Move selection
 #[derive(Debug)]
 pub struct MoveSelection {
     offset: Vec2,
@@ -86,6 +89,38 @@ impl Edit<CanvasData> for MoveSelection {
     fn merge(&self, other: &mut dyn Any) -> bool {
         if let Some(other) = other.downcast_mut::<Self>() {
             other.offset += self.offset;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+/// Draw brush on canvas
+#[derive(Debug)]
+pub struct DrawBrush {
+    pos: Vec<Vec2>,
+}
+
+impl DrawBrush {
+    pub fn new(pos: Vec<Vec2>) -> Self {
+        DrawBrush { pos }
+    }
+}
+
+#[must_use]
+impl Edit<CanvasData> for DrawBrush {
+    fn apply(&self, data: &mut CanvasData) {
+        data.draw_with_brush(&self.pos);
+    }
+
+    fn description(&self) -> EditDesc {
+        EditDesc::new("Draw Brush")
+    }
+
+    fn merge(&self, other: &mut dyn Any) -> bool {
+        if let Some(other) = other.downcast_mut::<Self>() {
+            other.pos.append(&mut self.pos.clone());
             true
         } else {
             false

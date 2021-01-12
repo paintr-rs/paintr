@@ -3,11 +3,26 @@ use crate::{CopyMode, Paintable, Selection};
 use druid::kurbo::Affine;
 use druid::{Data, RenderContext, Size, Vec2};
 use image::{DynamicImage, GenericImageView};
+use imageproc::drawing;
 
-use std::sync::Arc;
+use std::{cell::RefCell, sync::Arc};
+
+pub struct DrawPlane {
+    img: DynamicImage,
+    brush: Vec<Vec2>,
+}
+
+impl DrawPlane {
+    pub fn new(w: u32, h: u32) -> Self {
+        let img = image_utils::transparent_image(w, h);
+
+        Self { img, brush: vec![] }
+    }
+}
 
 pub enum Plane {
     Image(Arc<DynamicImage>),
+    Draw(Arc<RefCell<DrawPlane>>),
 }
 
 impl std::fmt::Debug for Plane {
@@ -16,26 +31,32 @@ impl std::fmt::Debug for Plane {
             Plane::Image(img) => {
                 ("Image", format!("DynamicImage[{}, {}]", img.width(), img.height()))
             }
+            Plane::Draw(img) => (
+                "Draw",
+                format!(
+                    "DynamicImage[{}, {}]",
+                    img.borrow().img.width(),
+                    img.borrow().img.height()
+                ),
+            ),
         };
 
         write!(f, "Plane {{ {} : {} }}", kind, s)
     }
 }
 
-impl_from! {
-    Plane : [Arc<DynamicImage> => Image]
-}
-
 impl Paintable for Plane {
     fn paint(&self, render_ctx: &mut impl RenderContext) {
         match self {
             Plane::Image(it) => it.paint(render_ctx),
+            Plane::Draw(it) => it.borrow().img.paint(render_ctx),
         };
     }
 
     fn paint_size(&self) -> Option<Size> {
         match self {
             Plane::Image(it) => it.paint_size(),
+            Plane::Draw(it) => it.borrow().img.paint_size(),
         }
     }
 }
@@ -44,6 +65,7 @@ impl Plane {
     fn image(&self) -> Arc<DynamicImage> {
         match self {
             Plane::Image(it) => it.clone(),
+            Plane::Draw(it) => Arc::new(it.borrow().img.clone()),
         }
     }
 }
@@ -125,15 +147,49 @@ impl Planes {
             let target = sel.transform(plane.transform);
             let img = plane.inner.image();
             if let Some(it) = target.cutout(img) {
-                plane.inner = Arc::new(it.into());
+                plane.inner = Arc::new(Plane::Image(it));
             }
         }
 
         self.planes.push(PlaneData {
-            inner: Arc::new(cutout.into()),
+            inner: Arc::new(Plane::Image(cutout)),
             transform: sel.position().to_vec2(),
         });
         PlaneIndex(self.planes.len() - 1)
+    }
+
+    pub(crate) fn draw_with_brush(&mut self, pos: &Vec<Vec2>) {
+        let (size, last) = match (self.max_size(), self.planes.last()) {
+            (Some(size), Some(last)) => (size, last),
+            _ => return,
+        };
+
+        if let Plane::Image(_) = last.inner.as_ref() {
+            let empty =
+                Arc::new(RefCell::new(DrawPlane::new(size.width as u32, size.height as u32)));
+            self.push(Plane::Draw(empty.clone()));
+        }
+
+        // reuse last plane if it is draw plane
+        let mut empty = match self.planes.last().map(|it| it.inner.as_ref()) {
+            Some(Plane::Draw(img)) => img.borrow_mut(),
+            _ => unreachable!(),
+        };
+
+        for p in pos {
+            if !empty.brush.iter().all(|it| it != p) {
+                continue;
+            }
+
+            drawing::draw_filled_circle_mut(
+                &mut empty.img,
+                (p.x as i32, p.y as i32),
+                5,
+                image_utils::colors::YELLOW,
+            );
+
+            empty.brush.push(*p);
+        }
     }
 }
 

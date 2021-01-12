@@ -5,7 +5,7 @@
 use std::fmt::Debug;
 
 use druid::{
-    widget::{Label, LabelText, WidgetExt},
+    widget::{Label, LabelText, LineBreaking, WidgetExt},
     LifeCycle, LifeCycleCtx,
 };
 use druid::{
@@ -42,6 +42,10 @@ impl<T: Data + Debug> Widget<T> for Named<T> {
         let origin = Point::new(0.0, header_offset);
         self.inner.set_layout_rect(ctx, data, env, Rect::from_origin_size(origin, size));
 
+        // relayout label for compulated width
+        let label_bc = BoxConstraints::new(Size::ZERO, Size::new(size.width, header_offset));
+        self.label.layout(ctx, &label_bc, data, env);
+
         Size::new(size.width, size.height + header_offset)
     }
     fn paint(&mut self, paint_ctx: &mut PaintCtx, data: &T, env: &Env) {
@@ -61,7 +65,7 @@ impl<T: Data + Debug> Named<T> {
     where
         T: Data + 'static,
     {
-        let label = Label::new(label.into()).padding(10.0);
+        let label = Label::new(label.into()).with_line_break_mode(LineBreaking::Clip).padding(10.0);
 
         Named { inner: WidgetPod::new(inner).boxed(), label: Box::new(label) }
     }

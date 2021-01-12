@@ -1,8 +1,8 @@
 use druid::kurbo::Affine;
 use druid::{Data, Point, RenderContext, Size, Vec2};
 
-use crate::image_utils;
 use crate::plane::{PlaneIndex, Planes};
+use crate::{image_utils, plane::Plane};
 use crate::{Paintable, Selection};
 use anyhow::Result;
 use std::sync::Arc;
@@ -27,7 +27,7 @@ impl CanvasData {
     pub fn new(path: impl Into<std::path::PathBuf>, img: image::DynamicImage) -> CanvasData {
         let mut planes = Planes::new();
         let size = img.paint_size().unwrap();
-        planes.push(Arc::new(img));
+        planes.push(Plane::Image(Arc::new(img)));
 
         CanvasData {
             selection: None,
@@ -79,7 +79,7 @@ impl CanvasData {
     }
 
     pub(crate) fn paste(&mut self, img: Arc<image::DynamicImage>) {
-        let idx = self.planes.push(img);
+        let idx = self.planes.push(Plane::Image(img));
 
         // FIXME: we don't need to mov the pasted image if we are using layer.
         self.planes.move_with_index(idx, -self.transform);
@@ -101,6 +101,10 @@ impl CanvasData {
                 }
             }
         }
+    }
+
+    pub(crate) fn draw_with_brush(&mut self, pos: &Vec<Vec2>) {
+        self.planes.draw_with_brush(pos);
     }
 
     pub(crate) fn move_selection(&mut self, offset: Vec2) {
