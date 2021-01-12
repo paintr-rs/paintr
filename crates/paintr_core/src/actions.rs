@@ -169,7 +169,7 @@ mod test {
     #[test]
     fn move_selection_should_works() {
         let mut canvas = canvas_fixture(16, 16, BLACK);
-        canvas.select(Rect::from_origin_size(Point::ZERO, (2.0, 2.0)));
+        canvas.select(Rect::from_origin_size(Point::ZERO, (4.0, 4.0)));
 
         let action = MoveSelection::new(Vec2::new(4.0, 4.0));
         let old = action.execute(&mut canvas);
