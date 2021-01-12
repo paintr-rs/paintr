@@ -6,7 +6,8 @@ use paintr_core::{
     EditKind,
 };
 
-use super::{Tool, ToolCtx};
+use crate::tools::ToolKind;
+use crate::widgets::{Tool, ToolCtx};
 use crate::EditorState;
 
 #[derive(Debug)]
@@ -28,7 +29,7 @@ pub(crate) struct MoveToolCtx {
 }
 
 impl MoveToolCtx {
-    fn from_point(editor: &mut EditorState, pt: Point) -> Option<Self> {
+    fn from_point<T>(editor: &mut EditorState<T>, pt: Point) -> Option<Self> {
         let canvas = editor.canvas.as_mut()?;
         let mut origin = canvas.position();
         let mut kind = MoveKind::WholeCanvas;
@@ -43,7 +44,7 @@ impl MoveToolCtx {
         Some(Self { kind, down: pt, origin, curr: origin, cursor: None })
     }
 
-    fn moved(&mut self, editor: &mut EditorState, pt: Point, kind: EditKind) -> Option<()> {
+    fn moved<T>(&mut self, editor: &mut EditorState<T>, pt: Point, kind: EditKind) -> Option<()> {
         let target = (pt.to_vec2() - self.down.to_vec2()) + self.origin.to_vec2();
 
         match self.kind {
@@ -71,12 +72,13 @@ impl MoveToolCtx {
 
 impl Tool for MoveTool {
     type Context = MoveToolCtx;
+    type Kind = ToolKind;
 
     fn event(
         &self,
         ctx: &mut EventCtx,
         event: &Event,
-        data: &mut EditorState,
+        data: &mut EditorState<ToolKind>,
         tool_ctx: &mut Option<MoveToolCtx>,
     ) {
         if data.cursor != Some(Cursor::Arrow) {

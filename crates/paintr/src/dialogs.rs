@@ -8,7 +8,7 @@ use druid::{
 };
 
 use crate::commands::NEW_IMAGE_ACTION;
-use crate::widgets::Modal;
+use paintr_widgets::widgets::Modal;
 
 use image::GenericImageView;
 use paintr_core::get_image_from_clipboard;

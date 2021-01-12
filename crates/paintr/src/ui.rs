@@ -4,9 +4,7 @@ use druid::{
     TextAlignment,
 };
 
-use crate::widgets::{
-    notif_bar::NotificationContainer, Conditional, Editor, ModalContainer, Named, RadioGroup,
-};
+use crate::widgets::{notif_bar::NotificationContainer, Editor, ModalContainer, Named, RadioGroup};
 use crate::{AppState, EditorState, ToolKind};
 
 fn canvas() -> impl Widget<AppState> {
@@ -50,7 +48,7 @@ fn toolbar() -> impl Widget<AppState> {
         ),
     ];
 
-    RadioGroup::new(buttons).lens(EditorState::tool).lens(AppState::editor).padding(5.0)
+    RadioGroup::new(buttons).lens(EditorState::<ToolKind>::tool).lens(AppState::editor).padding(5.0)
 }
 
 pub(crate) fn ui_builder() -> impl Widget<AppState> {
@@ -62,14 +60,22 @@ pub(crate) fn ui_builder() -> impl Widget<AppState> {
         AppState::modal,
     );
 
-    Flex::column().with_flex_child(container, 1.0).with_child(Conditional::new(
-        |data, _| data.status().is_some(),
+    // FIXME: https://github.com/linebender/druid/issues/1525
+    let mut status_bar = Flex::row();
+    status_bar.add_flex_spacer(1.0);
+    status_bar.add_flex_child(
+        // |data, _| data.status().is_some(),
         Label::new(|data: &AppState, _env: &Env| data.status().unwrap_or_default())
             .with_text_alignment(TextAlignment::End)
             .padding((5.0, 3.0))
-            .background(Color::rgb(0.5, 0.3, 0.5))
             .env_scope(|env, _| {
                 env.set(theme::TEXT_SIZE_NORMAL, 12.0);
-            }),
-    ))
+            })
+            .expand_width(),
+        1.0,
+    );
+    status_bar.add_flex_spacer(1.0);
+    let status_bar = status_bar.background(Color::rgb(0.5, 0.3, 0.5));
+
+    Flex::column().with_flex_child(container, 1.0).with_child(status_bar)
 }

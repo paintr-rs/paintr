@@ -418,8 +418,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "839a2e96089d82842923b3822e6977a8d2aace3f3706e6db9bae4d9c765e5697"
+source = "git+https://github.com/linebender/druid.git?rev=291b121#291b121e0fabe05c06c6af71241a14a3cbb692ac"
 dependencies = [
  "console_log",
  "druid-derive",
@@ -441,8 +440,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57b53fcfe6b4585894e0d0417dad85fd21aa7bd96c9d646d54d5a4638a484b18"
+source = "git+https://github.com/linebender/druid.git?rev=291b121#291b121e0fabe05c06c6af71241a14a3cbb692ac"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -452,8 +450,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b867ffe113aa77b75c0fcd2585360a3a4d17c758c44f4e87aadc71712fd1763"
+source = "git+https://github.com/linebender/druid.git?rev=291b121#291b121e0fabe05c06c6af71241a14a3cbb692ac"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -1301,6 +1298,7 @@ dependencies = [
  "druid",
  "image",
  "paintr_core",
+ "paintr_widgets",
 ]
 
 [[package]]
@@ -1314,6 +1312,15 @@ dependencies = [
  "imageproc",
  "log",
  "svg",
+]
+
+[[package]]
+name = "paintr_widgets"
+version = "0.1.0"
+dependencies = [
+ "druid",
+ "image",
+ "paintr_core",
 ]
 
 [[package]]

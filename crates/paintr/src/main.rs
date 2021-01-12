@@ -7,19 +7,18 @@ macro_rules! L {
 mod commands;
 mod dialogs;
 mod menu;
-mod theme_ext;
 mod tools;
 mod ui;
-mod widgets;
 
 use druid::{
-    theme, AppDelegate, AppLauncher, Application, Color, Command, Cursor, Data, DelegateCtx, Env,
-    Handled, Lens, LocalizedString, Target, WindowDesc, WindowId,
+    theme, AppDelegate, AppLauncher, Application, Color, Command, Data, DelegateCtx, Env, Handled,
+    Lens, LocalizedString, Target, WindowDesc, WindowId,
 };
 use paintr_core::{
-    actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, CopyMode, Edit,
-    EditDesc, EditKind, UndoHistory,
+    actions::Paste, get_image_from_clipboard, put_image_to_clipboard, CanvasData, CopyMode,
+    EditKind, UndoHistory,
 };
+use paintr_widgets::{theme_ext, widgets, EditorState};
 
 use std::sync::Arc;
 
@@ -48,13 +47,12 @@ fn main() {
 
     AppLauncher::with_window(main_window)
         .delegate(Delegate::default())
-        .configure_env(|old, _| {
+        .configure_env(|mut env, _| {
             // FIXME: Replace a new location manager as druid API allow
-            let mut env = Env::default();
             env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
             theme_ext::init(&mut env);
-            *old = env;
         })
+        .localization_resources(vec!["b.ftl".to_string()], "./r/i18n/".to_string())
         // .use_simple_logger()
         .launch(app_state)
         .expect("launch failed");
@@ -68,50 +66,10 @@ struct Delegate {
 type Error = Box<dyn std::error::Error>;
 
 #[derive(Clone, Data, Lens)]
-pub struct EditorState {
-    canvas: Option<CanvasData>,
-    history: UndoHistory<CanvasData>,
-    tool: ToolKind,
-    is_editing: bool,
-    cursor: Option<Cursor>,
-}
-
-impl EditorState {
-    fn do_edit(&mut self, edit: impl Edit<CanvasData> + 'static, kind: EditKind) -> bool {
-        self.is_editing = kind == EditKind::Mergeable;
-
-        let (history, canvas) = (&mut self.history, self.canvas.as_mut());
-        if let Some(canvas) = canvas {
-            history.edit(canvas, edit, kind);
-            true
-        } else {
-            false
-        }
-    }
-
-    fn do_undo(&mut self) -> Option<EditDesc> {
-        if self.is_editing {
-            return None;
-        }
-        let (history, canvas) = (&mut self.history, self.canvas.as_mut()?);
-        history.undo(canvas)
-    }
-
-    fn do_redo(&mut self) -> Option<EditDesc> {
-        if self.is_editing {
-            return None;
-        }
-
-        let (history, canvas) = (&mut self.history, self.canvas.as_mut()?);
-        history.redo(canvas)
-    }
-}
-
-#[derive(Clone, Data, Lens)]
 struct AppState {
     notifications: Arc<Vec<Notification>>,
     modal: Option<DialogData>,
-    editor: EditorState,
+    editor: EditorState<ToolKind>,
 }
 
 const NEW_FILE_NAME: &str = "Untitled";
