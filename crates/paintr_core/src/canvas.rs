@@ -1,4 +1,4 @@
-use druid::kurbo::Affine;
+use druid::{kurbo::Affine, PaintCtx};
 use druid::{Data, Point, RenderContext, Size, Vec2};
 
 use crate::plane::{PlaneIndex, Planes};
@@ -128,14 +128,11 @@ impl CanvasData {
 }
 
 impl Paintable for CanvasData {
-    fn paint(&self, render_ctx: &mut impl RenderContext) {
-        if let Err(err) = render_ctx.with_save(|ctx| {
+    fn paint(&self, paint_ctx: &mut PaintCtx) {
+        paint_ctx.with_save(|ctx| {
             ctx.transform(Affine::translate(self.transform));
             self.planes.paint(ctx);
-            Ok(())
-        }) {
-            log::error!("Render context error {}", err);
-        }
+        });
     }
 
     fn paint_size(&self) -> Option<Size> {
