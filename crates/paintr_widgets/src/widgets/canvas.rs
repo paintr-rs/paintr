@@ -45,7 +45,7 @@ impl Widget<DataType> for Canvas {
 
     fn paint(&mut self, paint_ctx: &mut PaintCtx, data: &DataType, _env: &Env) {
         if let Some(canvas) = &data {
-            canvas.paint(paint_ctx.render_ctx);
+            canvas.paint(paint_ctx);
         }
     }
 }

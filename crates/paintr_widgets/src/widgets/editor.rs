@@ -107,7 +107,7 @@ where
 
         if let Some(canvas) = &data.canvas {
             if let Some(selection) = canvas.selection().as_ref() {
-                selection.paint(paint_ctx.render_ctx);
+                selection.paint(paint_ctx);
             }
         }
     }

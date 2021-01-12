@@ -1,6 +1,6 @@
 use crate::image_utils;
 use crate::{CopyMode, Paintable, Selection};
-use druid::kurbo::Affine;
+use druid::{kurbo::Affine, PaintCtx};
 use druid::{Data, RenderContext, Size, Vec2};
 use image::{DynamicImage, GenericImageView};
 use imageproc::drawing;
@@ -46,10 +46,10 @@ impl std::fmt::Debug for Plane {
 }
 
 impl Paintable for Plane {
-    fn paint(&self, render_ctx: &mut impl RenderContext) {
+    fn paint(&self, paint_ctx: &mut PaintCtx) {
         match self {
-            Plane::Image(it) => it.paint(render_ctx),
-            Plane::Draw(it) => it.borrow().img.paint(render_ctx),
+            Plane::Image(it) => it.paint(paint_ctx),
+            Plane::Draw(it) => it.borrow().img.paint(paint_ctx),
         };
     }
 
@@ -152,7 +152,7 @@ impl Planes {
 
         // TODO: Cut out all other planes
         for plane in &mut self.planes {
-            let target = sel.transform(plane.transform);
+            let target = sel.transform(-plane.transform);
             let img = plane.inner.image();
             if let Some(it) = target.cutout(img) {
                 plane.inner = Arc::new(Plane::Image(it));
@@ -202,12 +202,11 @@ impl Planes {
 }
 
 impl Paintable for Planes {
-    fn paint(&self, render_ctx: &mut impl RenderContext) {
+    fn paint(&self, paint_ctx: &mut PaintCtx) {
         for plane in &self.planes {
-            let _ = render_ctx.with_save(|ctx| {
+            paint_ctx.with_save(|ctx| {
                 ctx.transform(Affine::translate(plane.transform));
                 plane.inner.paint(ctx);
-                Ok(())
             });
         }
     }

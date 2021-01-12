@@ -137,7 +137,14 @@ mod test {
     };
     use crate::test_utils::canvas_fixture;
     use druid::{Point, Rect};
-    use image::GenericImageView;
+    use image::{DynamicImage, GenericImageView};
+
+    #[allow(unused)]
+    macro_rules! dbg_img {
+        ($e:expr) => {
+            print_debug_img(&format!("{}:{}:{}", file!(), line!(), column!()), $e)
+        };
+    }
 
     #[test]
     fn paste_should_works() {
@@ -178,5 +185,36 @@ mod test {
 
         let img = canvas.merged();
         assert_eq!(img.get_pixel(2, 2), TRANSPARENT);
+    }
+
+    #[test]
+    fn move_selection_should_works_in_multiple_planes() {
+        let mut canvas = canvas_fixture(16, 16, BLACK);
+
+        canvas.select(Rect::from_origin_size(Point::ZERO, (4.0, 4.0)));
+        let action = MoveSelection::new(Vec2::new(4.0, 4.0));
+        action.execute(&mut canvas);
+        assert_eq!(canvas.merged().get_pixel(2, 2), TRANSPARENT);
+
+        canvas.select(Rect::from_origin_size(Point::ZERO, (8.0, 8.0)));
+        let action = MoveSelection::new(Vec2::new(8.0, 8.0));
+        action.execute(&mut canvas);
+        assert_eq!(canvas.merged().get_pixel(6, 6), TRANSPARENT);
+    }
+
+    #[allow(unused)]
+    fn print_debug_img(info: &str, img: &DynamicImage) {
+        println!("{}", info);
+        for y in 0..img.height() {
+            for x in 0..img.width() {
+                match img.get_pixel(x, y) {
+                    TRANSPARENT => print!("T"),
+                    BLACK => print!("B"),
+                    WHITE => print!("W"),
+                    _ => print!("?"),
+                }
+            }
+            println!("");
+        }
     }
 }
