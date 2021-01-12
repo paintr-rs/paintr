@@ -4,7 +4,7 @@ use paintr_core::{CanvasData, Edit, EditDesc, EditKind, UndoHistory};
 pub mod theme_ext;
 pub mod widgets;
 
-#[derive(Clone, Data, Lens)]
+#[derive(Debug, Clone, Data, Lens)]
 pub struct EditorState<T> {
     pub canvas: Option<CanvasData>,
     pub history: UndoHistory<CanvasData>,

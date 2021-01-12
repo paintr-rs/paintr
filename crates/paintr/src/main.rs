@@ -75,7 +75,7 @@ struct Delegate {
 
 type Error = Box<dyn std::error::Error>;
 
-#[derive(Clone, Data, Lens)]
+#[derive(Clone, Data, Lens, Debug)]
 struct AppState {
     notifications: Arc<Vec<Notification>>,
     modal: Option<DialogData>,

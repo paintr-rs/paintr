@@ -7,14 +7,14 @@ use crate::{Paintable, Selection};
 use anyhow::Result;
 use std::sync::Arc;
 
-#[derive(Data, Clone)]
+#[derive(Debug, Data, Clone)]
 enum SelectionBinder {
     Unbind(Selection),
     Bind(Selection, PlaneIndex),
 }
 
 // FIXME: Change name to Layer
-#[derive(Data, Clone)]
+#[derive(Debug, Data, Clone)]
 pub struct CanvasData {
     path: Arc<std::path::PathBuf>,
     selection: Option<SelectionBinder>,

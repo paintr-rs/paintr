@@ -2,6 +2,8 @@
 //!
 //! A widget represent a named window
 
+use std::fmt::Debug;
+
 use druid::{
     widget::{Label, LabelText, WidgetExt},
     LifeCycle, LifeCycleCtx,
@@ -11,12 +13,12 @@ use druid::{
     RenderContext, Size, UpdateCtx, Widget, WidgetPod,
 };
 
-pub struct Named<T: Data> {
+pub struct Named<T: Data + Debug> {
     inner: WidgetPod<T, Box<dyn Widget<T>>>,
     label: Box<dyn Widget<T>>,
 }
 
-impl<T: Data> Widget<T> for Named<T> {
+impl<T: Data + Debug> Widget<T> for Named<T> {
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         self.inner.lifecycle(ctx, event, data, env);
         self.label.lifecycle(ctx, event, data, env);
@@ -24,9 +26,11 @@ impl<T: Data> Widget<T> for Named<T> {
 
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         self.inner.event(ctx, event, data, env);
+        self.label.event(ctx, event, data, env);
     }
-    fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
         self.inner.update(ctx, data, env);
+        self.label.update(ctx, old_data, data, env);
     }
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let size = self.label.layout(ctx, &bc, data, env);
@@ -52,7 +56,7 @@ impl<T: Data> Widget<T> for Named<T> {
     }
 }
 
-impl<T: Data> Named<T> {
+impl<T: Data + Debug> Named<T> {
     pub fn new(inner: impl Widget<T> + 'static, label: impl Into<LabelText<T>>) -> impl Widget<T>
     where
         T: Data + 'static,

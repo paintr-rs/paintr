@@ -8,6 +8,12 @@ pub struct Paste {
     img: Arc<image::DynamicImage>,
 }
 
+impl std::fmt::Debug for Paste {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Paste").field("x", &Arc::as_ptr(&self.img)).finish()
+    }
+}
+
 impl Paste {
     pub fn new(img: image::DynamicImage) -> Paste {
         Paste { img: Arc::new(img) }
@@ -25,6 +31,7 @@ impl Edit<CanvasData> for Paste {
     }
 }
 
+#[derive(Debug)]
 pub struct MoveCanvas {
     offset: Vec2,
 }
@@ -55,6 +62,7 @@ impl Edit<CanvasData> for MoveCanvas {
     }
 }
 
+#[derive(Debug)]
 pub struct MoveSelection {
     offset: Vec2,
 }
