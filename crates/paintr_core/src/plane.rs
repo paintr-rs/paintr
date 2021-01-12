@@ -152,7 +152,7 @@ impl Planes {
 
         // TODO: Cut out all other planes
         for plane in &mut self.planes {
-            let target = sel.transform(plane.transform);
+            let target = sel.transform(-plane.transform);
             let img = plane.inner.image();
             if let Some(it) = target.cutout(img) {
                 plane.inner = Arc::new(Plane::Image(it));

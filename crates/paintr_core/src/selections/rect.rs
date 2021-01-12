@@ -53,6 +53,10 @@ impl SelectionShape for Rect {
         let rect = ImRect::at(rect.origin().x as i32, rect.origin().y as i32)
             .of_size(rect.width() as u32, rect.height() as u32);
 
+        if rect.width() == 0 || rect.height() == 0 {
+            return Some(img);
+        }
+
         // Deep clone an image
         let img = imageproc::drawing::draw_filled_rect(
             img.as_ref(),
