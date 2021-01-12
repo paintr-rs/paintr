@@ -12,3 +12,4 @@ paintr_widgets = {path="../paintr_widgets"}
 
 druid = { version = "0.7.0", features = ["svg"] }
 image = "0.23.12"
+dirs = "3.0.1"

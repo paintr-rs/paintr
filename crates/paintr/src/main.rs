@@ -20,7 +20,10 @@ use paintr_core::{
 };
 use paintr_widgets::{theme_ext, widgets, EditorState};
 
-use std::sync::Arc;
+use std::{
+    path::{self, PathBuf},
+    sync::Arc,
+};
 
 use dialogs::DialogData;
 use tools::ToolKind;
@@ -45,17 +48,24 @@ fn main() {
         .menu(menu::make_menu(&app_state))
         .window_size((800.0, 600.0));
 
-    AppLauncher::with_window(main_window)
+    let user_l10n = find_user_l10n();
+
+    let launcher = AppLauncher::with_window(main_window)
         .delegate(Delegate::default())
         .configure_env(|mut env, _| {
-            // FIXME: Replace a new location manager as druid API allow
             env.set(theme::WINDOW_BACKGROUND_COLOR, Color::rgb8(0, 0x77, 0x88));
             theme_ext::init(&mut env);
-        })
-        .localization_resources(vec!["b.ftl".to_string()], "./r/i18n/".to_string())
-        // .use_simple_logger()
-        .launch(app_state)
-        .expect("launch failed");
+        });
+
+    let launcher = match user_l10n {
+        Some(basedir) => launcher.localization_resources(
+            vec!["builtin.ftl".to_string()],
+            basedir.to_string_lossy().to_string(),
+        ),
+        None => launcher,
+    };
+
+    launcher.launch(app_state).expect("launch failed");
 }
 
 #[derive(Default, Debug)]
@@ -283,4 +293,13 @@ impl AppDelegate<AppState> for Delegate {
         // It do not works right now, maybe a druid bug
         Application::global().quit();
     }
+}
+
+fn find_user_l10n() -> Option<PathBuf> {
+    let paths = vec![
+        path::PathBuf::from("./resources/i18n/"),
+        dirs::config_dir()?.join("paintr/resources/i18n/"),
+    ];
+
+    paths.into_iter().find(|it| it.exists())
 }
