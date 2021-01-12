@@ -28,6 +28,7 @@ fn toolbar() -> impl Widget<AppState> {
 
     let move_tool_icon = include_str!("assets/icons/move_tool.svg");
     let rect_marquee_tool_icon = include_str!("assets/icons/rect_marquee_tool.svg");
+    let pen_tool_icon = include_str!("assets/icons/pen_tool.svg");
 
     let buttons: Vec<(Box<dyn Widget<_>>, _)> = vec![
         (
@@ -45,6 +46,14 @@ fn toolbar() -> impl Widget<AppState> {
                     .fix_height(button_size),
             ),
             ToolKind::Select,
+        ),
+        (
+            Box::new(
+                Svg::new(pen_tool_icon.parse().unwrap())
+                    .fix_width(button_size)
+                    .fix_height(button_size),
+            ),
+            ToolKind::Brush,
         ),
     ];
 

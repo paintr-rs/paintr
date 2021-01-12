@@ -1,8 +1,8 @@
 use druid::kurbo::Affine;
 use druid::{Data, Point, RenderContext, Size, Vec2};
 
-use crate::image_utils;
 use crate::plane::{PlaneIndex, Planes};
+use crate::{image_utils, plane::Plane};
 use crate::{Paintable, Selection};
 use anyhow::Result;
 use std::sync::Arc;
@@ -27,7 +27,7 @@ impl CanvasData {
     pub fn new(path: impl Into<std::path::PathBuf>, img: image::DynamicImage) -> CanvasData {
         let mut planes = Planes::new();
         let size = img.paint_size().unwrap();
-        planes.push(Arc::new(img));
+        planes.push(Plane::Image(Arc::new(img)));
 
         CanvasData {
             selection: None,
@@ -57,16 +57,14 @@ impl CanvasData {
     }
 
     pub fn merged(&self) -> Arc<image::DynamicImage> {
-        let img = self.planes.merged().expect("There is at least plane in Canvas");
         if self.transform == Vec2::ZERO {
+            let img = self.planes.merged().expect("There is at least plane in Canvas");
             return img;
         }
         // Create partial image based on offset and size
-        let mut output =
+        let output =
             image_utils::transparent_image(self.size.width as u32, self.size.height as u32);
-        image_utils::merge_image(&mut output, &img, self.transform);
-
-        Arc::new(output)
+        self.planes.merged_to(output, self.transform)
     }
 
     pub fn select(&mut self, sel: impl Into<Selection>) {
@@ -79,7 +77,7 @@ impl CanvasData {
     }
 
     pub(crate) fn paste(&mut self, img: Arc<image::DynamicImage>) {
-        let idx = self.planes.push(img);
+        let idx = self.planes.push(Plane::Image(img));
 
         // FIXME: we don't need to mov the pasted image if we are using layer.
         self.planes.move_with_index(idx, -self.transform);
@@ -101,6 +99,10 @@ impl CanvasData {
                 }
             }
         }
+    }
+
+    pub(crate) fn draw_with_brush(&mut self, pos: &Vec<Vec2>) {
+        self.planes.draw_with_brush(pos);
     }
 
     pub(crate) fn move_selection(&mut self, offset: Vec2) {
@@ -162,7 +164,7 @@ mod test {
     #[test]
     fn canvas_data_merged_should_works_with_moved() {
         let mut canvas = canvas_fixture(16, 16, WHITE);
-        canvas.move_canvas(Vec2::new(2.0, 2.0));
+        canvas.move_canvas(Vec2::new(4.0, 4.0));
         let black = make_color_img(4, 4, BLACK);
         canvas.paste(Arc::new(black));
         let merged = canvas.merged();

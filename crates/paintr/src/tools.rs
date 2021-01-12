@@ -1,9 +1,11 @@
+mod brush_tool;
 mod move_tool;
 mod select_tool;
 
 use crate::widgets::Tool;
 use crate::widgets::ToolCtx;
 use crate::EditorState;
+use brush_tool::BrushTool;
 use druid::{Data, Event, EventCtx};
 use move_tool::MoveTool;
 use select_tool::SelectTool;
@@ -33,5 +35,6 @@ macro_rules! register_tool {
 
 register_tool! {
     Move => MoveTool,
-    Select => SelectTool
+    Select => SelectTool,
+    Brush => BrushTool,
 }
