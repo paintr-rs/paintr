@@ -175,7 +175,7 @@ impl Delegate {
     ) -> Result<Handled, Error> {
         match cmd {
             _ if cmd.is(commands::FILE_EXIT_ACTION) => {
-                ctx.submit_command(druid::commands::CLOSE_WINDOW);
+                ctx.submit_command(druid::commands::QUIT_APP);
             }
             _ if cmd.is(commands::FILE_NEW_ACTION) => {
                 data.modal = Some(DialogData::new_file_settings());
